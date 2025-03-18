@@ -1,8 +1,10 @@
 // Banco de memória virtual
 module memory (
     input [15:0] data, // Dados para escrever na RAM
-    input [3:0] addr,  // Endereço da RAM no qual será escrito ou lido os dados
-    input we, clk,     // Ativar a escrita na RAM // Clock
+    input [3:0] addr1,
+    input [3:0] addr2,
+    input [3:0] dest,
+    input we, clk,
     output [15:0] q    // Leitura do que consta no endereço addr
 );
 
