@@ -1,27 +1,51 @@
 // Banco de memória virtual
 module memory (
-    input [15:0] data, // Dados para escrever na RAM
+    input [2:0] opcode,
+    input [15:0] data,
     input [3:0] addr1,
     input [3:0] addr2,
     input [3:0] dest,
+    input sinalImm,
+    input [5:0] Imm,
+
     input we, clk,
-    output [15:0] q    // Leitura do que consta no endereço addr
+    output [15:0] q1, q2, qF
 );
 
-    // Variável de RAM 16 x 16 bits
+    parameter READ = 1'b0,
+              WRITE = 1'b1;
     reg [15:0] ram[15:0];
+    reg state;
 
-    // Variável para guardar o endereço de leitura
-    reg [7:0] addr_reg;
+    module_alu ula (
+        opcode.(opcode),
+        valor1.(ram[addr1]),
+        valor2.(ram[addr2]),
+        sinalImm.(sinalImm),
+        Imm.(Imm),
+        clk.(clk),
+        saida.(qF)
+    );
 
-    // Escrever na RAM
+    // Primeiro always - Estado próximo
     always @ (posedge clk) begin
-        if (we) ram[addr] <= data;
-
-        addr_reg <= addr;
+        case(state)
+            READ: if (we) state <= WRITE;
+            WRITE: if (~we) state <= READ;
+        endcase
     end
 
-    // Ler a RAM
-    assign q = ram[addr_reg];
+    // Segundo always - Saída
+    always @ (state) begin
+
+        READ: begin
+            q1 <= ram[addr1];
+            q2 <= ram[addr2];
+        end
+        WRITE: begin
+            ram[dest] <= 
+        end
+
+    end
 
 endmodule
