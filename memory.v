@@ -9,22 +9,24 @@ module memory (
     input [5:0] Imm,
 
     input we, clk,
-    output [15:0] q1, q2, qF
+    output [15:0] q1, q2
 );
 
     parameter READ = 1'b0,
               WRITE = 1'b1;
-    reg [15:0] ram[15:0];
+    
+    reg [3:0] ram [15:0];
     reg state;
+    wire [15:0] qF;
 
     module_alu ula (
-        opcode.(opcode),
-        valor1.(ram[addr1]),
-        valor2.(ram[addr2]),
-        sinalImm.(sinalImm),
-        Imm.(Imm),
-        clk.(clk),
-        saida.(qF)
+        .opcode(opcode),
+        .valor1(ram[addr1]),
+        .valor2(ram[addr2]),
+        .sinalImm(sinalImm),
+        .Imm(Imm),
+        .clk(clk),
+        .saida(qF)
     );
 
     // Primeiro always - Estado próximo
@@ -43,7 +45,7 @@ module memory (
             q2 <= ram[addr2];
         end
         WRITE: begin
-            ram[dest] <= 
+            ram[dest] <= qF;
         end
 
     end
