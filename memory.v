@@ -1,7 +1,6 @@
 // Banco de memória virtual
 module memory (
     input [2:0] opcode,
-    input [15:0] data,
     input [3:0] addr1,
     input [3:0] addr2,
     input [3:0] dest,
