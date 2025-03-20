@@ -37,16 +37,7 @@ module module_mini_cpu (
         clk.(clk),
         q.(leituraRAM)
     );
-
-    // ULA
-    module_alu ula (
-        opcode.(opcode),
-        valor1.(dadosRAM[src1]),
-        valor2.(dadosRAM[src2]),
-        clk.(clk),
-        saida.(valorFinal)
-    );
-
+    
     // Inicialização
     initial begin
         we <= 0;
