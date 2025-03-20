@@ -8,16 +8,20 @@ module memory (
     input [5:0] Imm,
 
     input we, clk,
-    output [15:0] q1, q2
+    output [15:0] q1, q2,
+    output [15:0] qF
 );
 
+    // Estados
     parameter READ = 1'b0,
               WRITE = 1'b1;
     
+    // 
     reg [3:0] ram [15:0];
     reg state;
-    wire [15:0] qF;
-
+    wire [15:0] qF_wire;
+    
+    // Instanciação da ULA
     module_alu ula (
         .opcode(opcode),
         .valor1(ram[addr1]),
@@ -25,7 +29,7 @@ module memory (
         .sinalImm(sinalImm),
         .Imm(Imm),
         .clk(clk),
-        .saida(qF)
+        .saida(qF_wire)
     );
 
     // Primeiro always - Estado próximo
@@ -38,7 +42,6 @@ module memory (
 
     // Segundo always - Saída
     always @ (state) begin
-
         READ: begin
             q1 <= ram[addr1];
             q2 <= ram[addr2];
@@ -46,7 +49,9 @@ module memory (
         WRITE: begin
             ram[dest] <= qF;
         end
-
     end
+
+    // Atribuir o valor de qF
+    assign qF = qF_wire;
 
 endmodule
