@@ -1,18 +1,20 @@
 module module_mini_cpu (
+    // INPUTS ////////////////
     input [2:0] opcode,
-    input [3:0] src1,
-    input [3:0] src2,
-    input sinalImm,
-    input [5:0] Imm
-    input [3:0] dest,
-    input clk,
-    input ligar, enviar,
-    input we,
+    input [3:0] addr1,
+    input [3:0] addr2,
+    input [6:0] addr3OuImm, // São os mesmos switches pro addr3 e o Imm
+    input ligar, enviar
+    ///////////////////////////
 
-    output [15:0] valorFinal
+    // OUTPUTS ////////////////
+
+    // Falta adicionar os outputs (relativos ao LCD)
+
+    ///////////////////////////
 );
 
-    // Operações
+    // ESTADOS ///////////////
     parameter LOAD = 3'b000,
               ADD = 3'b001,
               ADDI = 3'b010,
@@ -21,86 +23,113 @@ module module_mini_cpu (
               MUL = 3'b101,
               CLEAR = 3'b110,
               DISPLAY = 3'b111;
+    ///////////////////////////
 
+
+    // WIRES //////////////////////////////////////////////
+
+    // Joga o resultado da operação da ULA para a RAM e o LCD
+    wire [15:0] resultadoULA;
+
+    // Joga os valores guardados na RAM para a ULA e o LCD
+    wire [15:0] v1RAMpULALCD, v2RAMpULALCD;
+
+    ///////////////////////////////////////////////////////
+
+
+    // REGS ///////////////////////////////////////////////
+
+    // Estado da CPU
     reg [2:0] state;
-    reg [15:0] dadosRAM [15:0];
-    reg [15:0] leituraRAM;
-    reg mostrarNumsLCD = 0 // 0 - Não mostrar, 1 - Mostrar
 
-    // RAM
-    memory ram (
-        data.(dadosRAM),
-        addr1.(src1),
-        addr2.(src2),
-        dest.(dest),
-        we.(we),
-        clk.(clk),
-        q.(leituraRAM)
+    // Registrar opcode após soltar botão "enviar"
+    reg [2:0] opcodeReg;
+
+    ///////////////////////////////////////////////////////
+
+
+    // RAM ////////////////////////////////////
+    memory memoriaRAM (
+        .addr1(addr1),
+        .addr2(addr2),
+        .addr3(addr3OuImm[6:3]),
+        .opcode(opcodeReg),
+        .valorGuardarRAM(valorGuardarULA),
+        .enviar(enviar),
+        .v1RAM(v1RAMpULALCD),
+        .v2RAM(v2RAMpULALCD)
     );
-    
-    // Inicialização
+    ////////////////////////////////////////////
+
+
+    // ULA /////////////////////////////////
+    module_alu ula (
+        .opcode(opcodeReg),
+        .sinalImm(addr3OuImm[6]),
+        .Imm(addr3OuImm[5:0]),
+        .v1ULA(v1RAM),
+        .v2ULA(v2RAM),
+        .enviar(enviar),
+        .valorGuardarULA(resultadoULA)
+    );
+    /////////////////////////////////////////
+
+
+    // INICIALIZAÇÃO ////////////////////////
     initial begin
-        we <= 0;
-        mostrarNumsLCD <= 0;
     end
+    /////////////////////////////////////////
 
-    // Primeiro always -> Estado próximo
+
+    // PRIMEIRO ALWAYS - ESTADO PRÓXIMO ///////////////////
     always @ (posedge enviar) begin
-
-        // Mudar o estado baseado no opcode
+        /*
+            Esse always mudará o estado de acordo com:
+                - O opcode atual
+                - O botão "enviar"
+        */
         case(opcode)
-
             LOAD: begin 
                 state <= LOAD;
-                we <= 1;
-                mostrarNumsLCD <= 1;
             end
             ADD: begin 
                 state <= ADD;
-                we <= 1;
-                mostrarNumsLCD <= 1;
             end
             ADDI: begin
                 state <= ADDI;
-                we <= 1;
-                mostrarNumsLCD <= 1;
             end
             SUB: begin 
                 state <= SUB;
-                we <= 1;
-                mostrarNumsLCD <= 1;
             end
             SUBI: begin 
                 state <= SUBI;
-                we <= 1;
-                mostrarNumsLCD <= 1;
             end
             MUL: begin 
                 state <= MUL;
-                we <= 1;
-                mostrarNumsLCD <= 1;
             end
             CLEAR: begin 
                 state <= CLEAR;
-                we <= 1;
-                mostrarNumsLCD <= 0;
             end
             DISPLAY: begin 
                 state <= DISPLAY;
-                we <= 0;
-                mostrarNumsLCD <= 1;
             end
-
         endcase
 
+        // Guardar opcode
+        opcodeReg <= opcode;
     end
+    ///////////////////////////////////////////////////
 
-    // Segundo always -> Saída
-    always @ (posedge clk) begin
 
+    // SEGUNDO ALWAYS - SAÍDA /////////////////////////
+    always @ (state) begin
+    /*
+        Esse always controlará o que é mostrado no LCD de acordo com:
+            - O estado atual
+            - O botão "ligar"
+    */
         case (state)
-
-            LOAD:
+            LOAD: 
             ADD:
             ADDI:
             SUB:
@@ -108,9 +137,8 @@ module module_mini_cpu (
             MUL:
             CLEAR:
             DISPLAY:
-
         endcase
-
     end
+    /////////////////////////////////////////////////////
     
 endmodule
