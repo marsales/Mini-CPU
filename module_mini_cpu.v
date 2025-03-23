@@ -4,7 +4,7 @@ module module_mini_cpu (
     input [3:0] addr1,
     input [3:0] addr2,
     input [6:0] addr3OuImm, // São os mesmos switches pro addr3 e o Imm
-    input ligar, enviar
+    input ligar, enviar, clk
     ///////////////////////////
 
     // OUTPUTS ////////////////
@@ -14,7 +14,13 @@ module module_mini_cpu (
     ///////////////////////////
 );
 
-    // ESTADOS ///////////////
+    // ESTADOS
+    parameter OFF = 2'b00,
+              FETCH = 2'b01,
+              DECODE = 2'b10,
+              DISPLAY_STORE = 2'b11;
+
+    // OPERAÇÕES ///////////////
     parameter LOAD = 3'b000,
               ADD = 3'b001,
               ADDI = 3'b010,
@@ -28,21 +34,19 @@ module module_mini_cpu (
 
     // WIRES //////////////////////////////////////////////
 
-    // Joga o resultado da operação da ULA para a RAM e o LCD
-    wire [15:0] resultadoULA;
+    wire [15:0] resultadoULA; // Joga o resultado da operação da ULA para a RAM e o LCD
 
-    // Joga os valores guardados na RAM para a ULA e o LCD
-    wire [15:0] v1RAMpULALCD, v2RAMpULALCD;
+    wire [15:0] v1RAMpULALCD, v2RAMpULALCD; // Joga os valores guardados na RAM para a ULA e o LCD
 
     ///////////////////////////////////////////////////////
 
 
     // REGS ///////////////////////////////////////////////
 
-    // Estado da CPU
-    reg [2:0] state;
+    reg [1:0] state; // Estado da CPU
 
-    // Registrar opcode após soltar botão "enviar"
+    reg enviarPush, ligarPush;
+
     reg [2:0] opcodeReg;
 
     ///////////////////////////////////////////////////////
@@ -77,47 +81,46 @@ module module_mini_cpu (
 
     // INICIALIZAÇÃO ////////////////////////
     initial begin
+        state <= FETCH;
+        enviarPush <= 1'b1;
+        ligarPush <= 1'b1;
     end
     /////////////////////////////////////////
 
 
     // PRIMEIRO ALWAYS - ESTADO PRÓXIMO ///////////////////
-    always @ (posedge enviar) begin
-        /*
-            Esse always mudará o estado de acordo com:
-                - O opcode atual
-                - O botão "enviar"
-        */
-        case(opcode)
-            LOAD: begin 
-                state <= LOAD;
+    always @ (posedge enviar, posedge ligar, posedge clk, negedge enviar, negedge ligar) begin
+
+        case(state)
+
+        FETCH: begin
+            // Se LIGAR estiver sendo apertado
+            if (~ligar && ligarPush == 1'b1) ligarPush <= 1'b0;
+
+            // Se LIGAR estiver sendo solto
+            if
+
+            // Se ENVIAR estiver sendo apertado
+            if (~enviar && enviarPush == 1'b1) enviarPush <= 1'b0;
+
+            // Se ENVIAR estiver sendo solto
+            if (enviar && enviarPush == 1'b0) begin
+                enviarPush <= 1'b1;
+                opcodeReg <= opcode;
+                state <= DECODE;
             end
-            ADD: begin 
-                state <= ADD;
-            end
-            ADDI: begin
-                state <= ADDI;
-            end
-            SUB: begin 
-                state <= SUB;
-            end
-            SUBI: begin 
-                state <= SUBI;
-            end
-            MUL: begin 
-                state <= MUL;
-            end
-            CLEAR: begin 
-                state <= CLEAR;
-            end
-            DISPLAY: begin 
-                state <= DISPLAY;
-            end
+
+        DECODE: begin
+
+        end
+
+
+        end
+
         endcase
 
-        // Guardar opcode
-        opcodeReg <= opcode;
-    end
+
+        /// nao alterei ainda a partir daq
     ///////////////////////////////////////////////////
 
 
