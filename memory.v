@@ -6,7 +6,7 @@ module memory (
     input [3:0] addr3,
     input [2:0] opcode,
     input [15:0] valorGuardarRAM,
-    input clk,
+    input clk, opPronta,
     //////////////////////////////
 
     // OUTPUTS ///////////////////
@@ -35,72 +35,70 @@ module memory (
     
     // REGS /////////////////////
 
-    // Variável da RAM
-    reg [15:0] ram [15:0];
+    reg [15:0] ram [15:0]; // Variável da RAM
 
-    // Estado da RAM
-    reg [1:0] stateRAM;
+    reg [1:0] stateRAM; // Estado da RAM
 
-    reg [3:0] addrL1, addrL2, addrE;
+    reg [3:0] addrL1, addrL2, addrE; // Endereços
 
     /////////////////////////////
 
-
-
     integer i;
 
-    always @ (posedge enviar) begin
-        case(opcode)
+    always @ (posedge clk) begin
+        if (opPronta) begin
+            case(opcode)
 
-            LOAD: begin
-                addrE <= addr1;
-                stateRAM <= WRITEONLY;
-            end
+                LOAD: begin
+                    addrE <= addr1;
+                    stateRAM <= WRITEONLY;
+                end
 
-            ADD: begin
-                addrL1 <= addr1;
-                addrL2 <= addr2;
-                addrE <= addr3;
-                stateRAM <= READANDWRITE;
-            end
+                ADD: begin
+                    addrL1 <= addr1;
+                    addrL2 <= addr2;
+                    addrE <= addr3;
+                    stateRAM <= READANDWRITE;
+                end
 
-            ADDI: begin
-                addrL1 <= addr1;
-                addrE <= addr2;
-                stateRAM <= READANDWRITE;
-            end
+                ADDI: begin
+                    addrL1 <= addr1;
+                    addrE <= addr2;
+                    stateRAM <= READANDWRITE;
+                end
 
-            SUB: begin
-                addrL1 <= addr1;
-                addrL2 <= addr2;
-                addrE <= addr3;
-                stateRAM <= READANDWRITE;
-            end
+                SUB: begin
+                    addrL1 <= addr1;
+                    addrL2 <= addr2;
+                    addrE <= addr3;
+                    stateRAM <= READANDWRITE;
+                end
 
-            SUBI: begin
-                addrL1 <= addr1;
-                addrE <= addr2;
-                stateRAM <= READANDWRITE;
-            end
+                SUBI: begin
+                    addrL1 <= addr1;
+                    addrE <= addr2;
+                    stateRAM <= READANDWRITE;
+                end
 
-            MUL: begin
-                addrL1 <= addr1;
-                addrE <= addr2;
-                stateRAM <= READANDWRITE;
-            end
+                MUL: begin
+                    addrL1 <= addr1;
+                    addrE <= addr2;
+                    stateRAM <= READANDWRITE;
+                end
 
-            CLEAR: stateRAM <= RESET;
-            
-            DISPLAY: begin
-                addrL1 <= addr1;
-                stateRAM <= READONLY;
-            end
+                CLEAR: stateRAM <= RESET;
+                
+                DISPLAY: begin
+                    addrL1 <= addr1;
+                    stateRAM <= READONLY;
+                end
 
-        endcase
+            endcase
+        end
     end
 
     // SEGUNDO ALWAYS - SAÍDA ///////////////////
-    always @ (posedge enviar) begin
+    always @ (stateRAM) begin
 
         case(stateRAM)
 
@@ -108,7 +106,12 @@ module memory (
                 ram[addrE] <= valorGuardarRAM;
             end
 
-            READANDWRITE
+            READANDWRITE: begin
+                ram[addrE] <= valorGuardarRAM;
+                v1RAM <= ram[addrL1];
+                v2RAM <= ram[addrL2];
+
+            end
             
             RESET: begin
                 for (i = 0; i < 16; i = i + 1) ram[i] <= 16'b0000000000000000;

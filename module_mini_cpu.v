@@ -8,9 +8,7 @@ module module_mini_cpu (
     ///////////////////////////
 
     // OUTPUTS ////////////////
-
     output reg [15:0] result;
-
     ///////////////////////////
 );
 
@@ -49,10 +47,11 @@ module module_mini_cpu (
 
     reg [2:0] opcodeReg;
 
+    reg opDone;
+
     ///////////////////////////////////////////////////////
 
 
-    // A MODIFICAR
     // RAM ////////////////////////////////////
     memory memoriaRAM (
         .addr1(addr1),
@@ -61,6 +60,7 @@ module module_mini_cpu (
         .opcode(opcodeReg),
         .valorGuardarRAM(valorGuardarULA),
         .clk(clk),
+        .opPronta(opDone),
         .v1RAM(v1RAMpULALCD),
         .v2RAM(v2RAMpULALCD)
     );
@@ -85,6 +85,7 @@ module module_mini_cpu (
         state <= FETCH;
         enviarPush <= 1'b1;
         ligarPush <= 1'b1;
+        opDone <= 1'b0;
     end
     /////////////////////////////////////////
 
@@ -93,6 +94,8 @@ module module_mini_cpu (
         case(state)
 
         FETCH: begin
+            opDone <= 1'b0;
+
             // Se LIGAR estiver sendo apertado
             if (~ligar && ligarPush == 1'b1) ligarPush <= 1'b0;
 
@@ -125,8 +128,10 @@ module module_mini_cpu (
 
             else begin
                 result <= valorGuardarULA;
-                state <= DISPLAY_STORE;
+                opDone <= 1'b1;
             end
+
+            if (opDone == 1'b1) state <= DISPLAY_STORE;
         end
 
         DISPLAY_STORE: begin
@@ -140,12 +145,14 @@ module module_mini_cpu (
                 state <= OFF;
             end
 
+
+
             else begin
 
-                module lcd(
+                lcd instLCD (
                     .opcode(opcodeReg),
                     .result(result),
-                    .clk(clk),
+                    .clk(clk)
                 );
             
             end
@@ -156,6 +163,6 @@ module module_mini_cpu (
 
         endcase
     end
-
+endmodule
         
 

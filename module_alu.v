@@ -84,7 +84,7 @@ module module_alu (
             CLEAR: valorGuardarULA <= 16'b0000000000000000;
 
             // Se for DISPLAY, nada será guardado na RAM
-            DISPLAY: valorGuardarULA <= valorGuardar;
+            DISPLAY: valorGuardarULA <= valorGuardarULA;
         endcase
     end
     //////////////////////////////////////////////////////////////
