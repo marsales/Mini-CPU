@@ -123,10 +123,32 @@ module module_mini_cpu (
                 state <= OFF;
             end
 
-            else result <= valorGuardarULA;
+            else begin
+                result <= valorGuardarULA;
+                state <= DISPLAY_STORE;
+            end
         end
 
         DISPLAY_STORE: begin
+        
+            // Se LIGAR estiver sendo apertado
+            if (~ligar && ligarPush == 1'b1) ligarPush <= 1'b0;
+
+            // Se LIGAR estiver sendo solto
+            else if (ligar && ligarPush == 1'b0) begin
+                ligarPush <= 1'b1;
+                state <= OFF;
+            end
+
+            else begin
+
+                module lcd(
+                    .opcode(opcodeReg),
+                    .result(result),
+                    .clk(clk),
+                );
+            
+            end
 
 
 
