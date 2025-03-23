@@ -9,7 +9,7 @@ module module_mini_cpu (
 
     // OUTPUTS ////////////////
 
-    // Falta adicionar os outputs (relativos ao LCD)
+    output reg [15:0] result;
 
     ///////////////////////////
 );
@@ -52,6 +52,7 @@ module module_mini_cpu (
     ///////////////////////////////////////////////////////
 
 
+    // A MODIFICAR
     // RAM ////////////////////////////////////
     memory memoriaRAM (
         .addr1(addr1),
@@ -59,7 +60,7 @@ module module_mini_cpu (
         .addr3(addr3OuImm[6:3]),
         .opcode(opcodeReg),
         .valorGuardarRAM(valorGuardarULA),
-        .enviar(enviar),
+        .clk(clk),
         .v1RAM(v1RAMpULALCD),
         .v2RAM(v2RAMpULALCD)
     );
@@ -73,7 +74,7 @@ module module_mini_cpu (
         .Imm(addr3OuImm[5:0]),
         .v1ULA(v1RAM),
         .v2ULA(v2RAM),
-        .enviar(enviar),
+        .clk(clk),
         .valorGuardarULA(resultadoULA)
     );
     /////////////////////////////////////////
@@ -87,8 +88,6 @@ module module_mini_cpu (
     end
     /////////////////////////////////////////
 
-
-    // PRIMEIRO ALWAYS - ESTADO PRÓXIMO ///////////////////
     always @ (posedge enviar, posedge ligar, posedge clk, negedge enviar, negedge ligar) begin
 
         case(state)
@@ -98,7 +97,10 @@ module module_mini_cpu (
             if (~ligar && ligarPush == 1'b1) ligarPush <= 1'b0;
 
             // Se LIGAR estiver sendo solto
-            if
+            if (ligar && ligarPush == 1'b0) begin
+                ligarPush <= 1'b1;
+                state <= OFF;
+            end
 
             // Se ENVIAR estiver sendo apertado
             if (~enviar && enviarPush == 1'b1) enviarPush <= 1'b0;
@@ -109,39 +111,29 @@ module module_mini_cpu (
                 opcodeReg <= opcode;
                 state <= DECODE;
             end
+        end
 
         DECODE: begin
+            // Se LIGAR estiver sendo apertado
+            if (~ligar && ligarPush == 1'b1) ligarPush <= 1'b0;
+
+            // Se LIGAR estiver sendo solto
+            else if (ligar && ligarPush == 1'b0) begin
+                ligarPush <= 1'b1;
+                state <= OFF;
+            end
+
+            else result <= valorGuardarULA;
+        end
+
+        DISPLAY_STORE: begin
+
+
 
         end
 
-
-        end
-
-        endcase
-
-
-        /// nao alterei ainda a partir daq
-    ///////////////////////////////////////////////////
-
-
-    // SEGUNDO ALWAYS - SAÍDA /////////////////////////
-    always @ (state) begin
-    /*
-        Esse always controlará o que é mostrado no LCD de acordo com:
-            - O estado atual
-            - O botão "ligar"
-    */
-        case (state)
-            LOAD: 
-            ADD:
-            ADDI:
-            SUB:
-            SUBI:
-            MUL:
-            CLEAR:
-            DISPLAY:
         endcase
     end
-    /////////////////////////////////////////////////////
-    
-endmodule
+
+        
+

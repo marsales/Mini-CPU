@@ -5,7 +5,7 @@ module module_alu (
     input [5:0] Imm,
     input [15:0] v1ULA,
     input [15:0] v2ULA,
-    input enviar,
+    input clk,
     /////////////////////////////////
 
     // OUTPUTS /////////////////////
@@ -26,16 +26,14 @@ module module_alu (
 
     // REGS ////////////////////
 
-    // Estado da CPU
-    reg [2:0] state;
+    reg [2:0] state; // Estado da ULA
 
     ////////////////////////////
 
     // PRIMEIRO ALWAYS - ESTADO PRÓXIMO ////////////
-    always @ (posedge enviar) begin
+    always @ (posedge clk) begin
         /*
-            Esse always altera o estado da ULA baseado
-            no opcode registrado quando o botão "enviar" foi solto
+            Esse always altera o estado da ULA
         */
         case(opcode)
             LOAD: state <= LOAD;
