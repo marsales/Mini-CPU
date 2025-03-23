@@ -6,22 +6,22 @@ module memory (
     input [3:0] addr3,
     input [2:0] opcode,
     input [15:0] valorGuardarRAM,
-    input clk, opPronta,
-    //////////////////////////////
+    input [1:0] stateCPU,
+    input clk,
 
     // OUTPUTS ///////////////////
-    output [15:0] v1RAM, v2RAM
-    //////////////////////////////
+    output [15:0] v1RAM, v2RAM,
+    output reg stored
 );
 
-    // ESTADOS DA RAM ///////////////
-    parameter WRITEONLY = 2'b00,        // LOAD
-              READANDWRITE = 2'b01,     // ADD | ADDI | SUB | SUBI | MUL
-              RESET = 2'b10,            // CLEAR
-              READONLY = 2'b11;         // DISPLAY
-    //////////////////////////////
+    // ESTADOS DA CPU ///////////////
+    parameter OFF = 3'b000,
+              FETCH = 3'b001,
+              DECODE = 3'b010,
+              CALC = 3'b011,
+              DISPLAY_STORE = 3'100;
 
-    // OPCODES ////////
+    // OPCODES /////////////////
     parameter LOAD = 3'b000,
               ADD = 3'b001,
               ADDI = 3'b010,
@@ -30,74 +30,44 @@ module memory (
               MUL = 3'b101,
               CLEAR = 3'b110,
               DISPLAY = 3'b111;
-    ///////////////////////////
 
     
-    // REGS /////////////////////
-
+    // VARIÁVEIS ////////////////////////////
     reg [15:0] ram [15:0]; // Variável da RAM
 
     reg [1:0] stateRAM; // Estado da RAM
 
     reg [3:0] addrL1, addrL2, addrE; // Endereços
 
-    /////////////////////////////
-
     integer i;
 
+
     always @ (posedge clk) begin
-        if (opPronta) begin
+        // Quando precisar escrever algo na RAM
+        if (stateCPU == STORE) begin
+            
             case(opcode)
+                LOAD: ram[addr1] <= valorGuardarRAM;
+                ADD: ram[addr3] <= valorGuardarRAM;
+                ADDI: ram[addr2] <= valorGuardarRAM;
+                SUB: ram[addr3] <= valorGuardarRAM;
+                SUBI: ram[addr2] <= valorGuardarRAM;
+                MUL: ram[addr2] <= valorGuardarRAM;
+                CLEAR: for (i = 0; i < 16; i = i + 1) ram[i] <= 16'b0000000000000000;
+            
+                default begin end // Para quando for DISPLAY (não guardar nada)
 
-                LOAD: begin
-                    addrE <= addr1;
-                    stateRAM <= WRITEONLY;
-                end
-
-                ADD: begin
-                    addrL1 <= addr1;
-                    addrL2 <= addr2;
-                    addrE <= addr3;
-                    stateRAM <= READANDWRITE;
-                end
-
-                ADDI: begin
-                    addrL1 <= addr1;
-                    addrE <= addr2;
-                    stateRAM <= READANDWRITE;
-                end
-
-                SUB: begin
-                    addrL1 <= addr1;
-                    addrL2 <= addr2;
-                    addrE <= addr3;
-                    stateRAM <= READANDWRITE;
-                end
-
-                SUBI: begin
-                    addrL1 <= addr1;
-                    addrE <= addr2;
-                    stateRAM <= READANDWRITE;
-                end
-
-                MUL: begin
-                    addrL1 <= addr1;
-                    addrE <= addr2;
-                    stateRAM <= READANDWRITE;
-                end
-
-                CLEAR: stateRAM <= RESET;
-                
-                DISPLAY: begin
-                    addrL1 <= addr1;
-                    stateRAM <= READONLY;
-                end
-
+                stored <= 1'b1;
             endcase
         end
+        /* Quando a CPU mudar de estado de STORE para FETCH,
+        o stored vai resetar para 0 novamente, e só voltará
+        a ser 1 quando uma nova operação for realizada
+        */
+        else stored <= 1'b0;
     end
 
-    // SEGUNDO ALWAYS - SAÍDA ///////////////////
+  
     always @ (stateRAM) begin
 
         case(stateRAM)

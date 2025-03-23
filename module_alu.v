@@ -5,13 +5,23 @@ module module_alu (
     input [5:0] Imm,
     input [15:0] v1ULA,
     input [15:0] v2ULA,
+    input [1:0] stateCPU
     input clk,
     /////////////////////////////////
 
     // OUTPUTS /////////////////////
-    output [15:0] valorGuardarULA
+    output [15:0] valorGuardarULA,
+    output reg decoded,
+    output reg calculated
     ////////////////////////////////
 );
+
+    // ESTADOS DA CPU
+    parameter OFF = 3'b000,
+              FETCH = 3'b001,
+              DECODE = 3'b010,
+              CALC = 3'b011,
+              DISPLAY_STORE = 3'b100;
 
     // ESTADOS /////////////////
     parameter LOAD = 3'b000,
@@ -32,61 +42,74 @@ module module_alu (
 
     // PRIMEIRO ALWAYS - ESTADO PRÓXIMO ////////////
     always @ (posedge clk) begin
-        /*
-            Esse always altera o estado da ULA
+        // Quando o estado for para DECODE, descobrir qual é a operação
+        if (stateCPU == DECODE) begin
+            case(opcode)
+                LOAD: state <= LOAD;
+                ADD: state <= ADD;
+                ADDI: state <= ADDI;
+                SUB: state <= SUB;
+                SUBI: state <= SUBI;
+                MUL: state <= MUL;
+                CLEAR: state <= CLEAR;
+                DISPLAY: state <= DISPLAY;
+            endcase
+            decoded <= 1'b1;
+        end
+        
+        /* Quando a CPU mudar de estado de DECODE para CALC,
+        o decoded vai resetar para 0 novamente, e só voltará
+        a ser 1 quando uma nova instrução for decodificada
         */
-        case(opcode)
-            LOAD: state <= LOAD;
-            ADD: state <= ADD;
-            ADDI: state <= ADDI;
-            SUB: state <= SUB;
-            SUBI: state <= SUBI;
-            MUL: state <= MUL;
-            CLEAR: state <= CLEAR;
-            DISPLAY: state <= DISPLAY;
-        endcase
+        else decoded <= 1'b0;
     end
-    /////////////////////////////////////////////////
 
     // SEGUNDO ALWAYS - SAÍDA /////////////////////////////////////
-    always @ (state) begin
-        /*
-            Esse always produz a saída da ULA;
-            ou seja, o resultado da operação
+    always @ (posedge clk) begin
+        
+        // Só fará o cálculo quando a CPU estiver no estado CALC
+        if (stateCPU == CALC) begin
+            case(state)
+                // Se for LOAD, apenas armazenar Imm
+                LOAD: valorGuardarULA <= {sinalImm, Imm}; 
+
+                ADD: valorGuardarULA <= v1ULA + v2ULA;
+
+                ADDI: begin
+                    // Se Imm for negativo, vira subtração
+                    if (sinalImm) valorGuardarULA <= v1ULA - Imm;
+                    else valorGuardarULA <= v1ULA + Imm;
+                end
+
+                SUB: valorGuardarULA <= v1ULA - v2ULA;
+
+                SUBI: begin
+                    // Se Imm for negativo, vira soma
+                    if (sinalImm) valorGuardarULA <= v1ULA + Imm;
+                    else valorGuardarULA <= v1ULA - Imm;
+                end
+
+                MUL: begin
+                    // Se Imm for negativo, troca o sinal do resultado
+                    if (sinalImm) valorGuardarULA <= v1ULA * Imm * -1;
+                    else valorGuardarULA <= v1ULA * Imm;
+                end
+
+                // Se for CLEAR, resetar a RAM com todos os registradores iguais a zero
+                CLEAR: valorGuardarULA <= 16'b0000000000000000;
+
+                // Se for DISPLAY, nada será guardado na RAM
+                DISPLAY: valorGuardarULA <= valorGuardarULA;
+            endcase
+
+            calculated <= 1'b1;
+        end
+
+        /* Quando a CPU mudar de estado de CALC para DISPLAY_STORE,
+        o calculated vai resetar para 0 novamente, e só voltará
+        a ser 1 quando um novo cálculo for realizado
         */
-        case(state)
-            // Se for LOAD, apenas armazenar Imm
-            LOAD: valorGuardarULA <= {sinalImm, Imm}; 
-
-            ADD: valorGuardarULA <= v1ULA + v2ULA;
-
-            ADDI: begin
-                // Se Imm for negativo, vira subtração
-                if (sinalImm) valorGuardarULA <= v1ULA - Imm;
-                else valorGuardarULA <= v1ULA + Imm;
-            end
-
-            SUB: valorGuardarULA <= v1ULA - v2ULA;
-
-            SUBI: begin
-                // Se Imm for negativo, vira soma
-                if (sinalImm) valorGuardarULA <= v1ULA + Imm;
-                else valorGuardarULA <= v1ULA - Imm;
-            end
-
-            MUL: begin
-                // Se Imm for negativo, troca o sinal do resultado
-                if (sinalImm) valorGuardarULA <= v1ULA * Imm * -1;
-                else valorGuardarULA <= v1ULA * Imm;
-            end
-
-            // Se for CLEAR, resetar a RAM com todos os registradores iguais a zero
-            CLEAR: valorGuardarULA <= 16'b0000000000000000;
-
-            // Se for DISPLAY, nada será guardado na RAM
-            DISPLAY: valorGuardarULA <= valorGuardarULA;
-        endcase
+        else calculated <= 1'b0;
     end
-    //////////////////////////////////////////////////////////////
 
 endmodule

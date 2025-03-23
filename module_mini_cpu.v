@@ -13,10 +13,12 @@ module module_mini_cpu (
 );
 
     // ESTADOS
-    parameter OFF = 2'b00,
-              FETCH = 2'b01,
-              DECODE = 2'b10,
-              DISPLAY_STORE = 2'b11;
+    parameter OFF = 3'b000,
+              FETCH = 3'b001,
+              DECODE = 3'b010,
+              CALC = 3'b011,
+              DISPLAY = 3'100,
+              STORE = 3'101;
 
     // OPERAÇÕES ///////////////
     parameter LOAD = 3'b000,
@@ -41,13 +43,15 @@ module module_mini_cpu (
 
     // REGS ///////////////////////////////////////////////
 
-    reg [1:0] state; // Estado da CPU
+    reg [2:0] state; // Estado da CPU
 
     reg enviarPush, ligarPush;
 
     reg [2:0] opcodeReg;
 
-    reg opDone;
+    reg decoded; // Verifica se a ULA já descobriu qual é a operação
+    reg calculated; // Verifica se a ULA já realizou a operação
+    reg stored // Verifica se a RAM já armazenou o resultado final
 
     ///////////////////////////////////////////////////////
 
@@ -60,12 +64,10 @@ module module_mini_cpu (
         .opcode(opcodeReg),
         .valorGuardarRAM(valorGuardarULA),
         .clk(clk),
-        .opPronta(opDone),
         .v1RAM(v1RAMpULALCD),
-        .v2RAM(v2RAMpULALCD)
+        .v2RAM(v2RAMpULALCD),
+        .stored(stored)
     );
-    ////////////////////////////////////////////
-
 
     // ULA /////////////////////////////////
     module_alu ula (
@@ -75,17 +77,23 @@ module module_mini_cpu (
         .v1ULA(v1RAM),
         .v2ULA(v2RAM),
         .clk(clk),
-        .valorGuardarULA(resultadoULA)
+        .valorGuardarULA(resultadoULA),
+        .decoded(decoded),
+        .calculated(calculated)
     );
-    /////////////////////////////////////////
 
+    // LCD ///////////////////////////////
+    lcd instLCD (
+        .opcode(opcodeReg),
+        .result(result),
+        .clk(clk)
+    );
 
     // INICIALIZAÇÃO ////////////////////////
     initial begin
         state <= FETCH;
         enviarPush <= 1'b1;
         ligarPush <= 1'b1;
-        opDone <= 1'b0;
     end
     /////////////////////////////////////////
 
@@ -94,7 +102,6 @@ module module_mini_cpu (
         case(state)
 
         FETCH: begin
-            opDone <= 1'b0;
 
             // Se LIGAR estiver sendo apertado
             if (~ligar && ligarPush == 1'b1) ligarPush <= 1'b0;
@@ -117,6 +124,24 @@ module module_mini_cpu (
         end
 
         DECODE: begin
+
+            // Se LIGAR estiver sendo apertado
+            if (~ligar && ligarPush == 1'b1) ligarPush <= 1'b0;
+
+            // Se LIGAR estiver sendo solto
+            else if (ligar && ligarPush == 1'b0) begin
+                ligarPush <= 1'b1;
+                state <= OFF;
+            end
+
+            // Se a ULA descobriu a operação, fazer o cálculo
+            else begin
+                if (decoded) state <= CALC;
+            end
+        end
+
+        CALC: begin
+
             // Se LIGAR estiver sendo apertado
             if (~ligar && ligarPush == 1'b1) ligarPush <= 1'b0;
 
@@ -127,14 +152,12 @@ module module_mini_cpu (
             end
 
             else begin
-                result <= valorGuardarULA;
-                opDone <= 1'b1;
+                // Se a ULA realizou a operação, ir para DISPLAY_STORE
+                if (calculated) state <= DISPLAY_STORE;
             end
-
-            if (opDone == 1'b1) state <= DISPLAY_STORE;
         end
 
-        DISPLAY_STORE: begin
+        DISPLAY: begin
         
             // Se LIGAR estiver sendo apertado
             if (~ligar && ligarPush == 1'b1) ligarPush <= 1'b0;
@@ -145,20 +168,52 @@ module module_mini_cpu (
                 state <= OFF;
             end
 
+            else begin
 
+                // A saída da CPU recebe o resultado da operação que vem da ULA
+                result <= valorGuardarULA;
+
+                // Lógica do LCD //
+
+                ///////////////////
+
+                state <= STORE;
+                
+            end
+        end
+
+        STORE: begin
+
+            // Se LIGAR estiver sendo apertado
+            if (~ligar && ligarPush == 1'b1) ligarPush <= 1'b0;
+
+            // Se LIGAR estiver sendo solto
+            else if (ligar && ligarPush == 1'b0) begin
+                ligarPush <= 1'b1;
+                state <= OFF;
+            end
+        
+            else begin
+                if (stored)
+            end
+        end
+
+        OFF: begin
+
+            // Se LIGAR estiver sendo apertado
+            if (~ligar && ligarPush == 1'b1) ligarPush <= 1'b0;
+
+            // Se LIGAR estiver sendo solto
+            else if (ligar && ligarPush == 1'b0) begin
+                ligarPush <= 1'b1;
+                state <= FETCH;
+            end
 
             else begin
 
-                lcd instLCD (
-                    .opcode(opcodeReg),
-                    .result(result),
-                    .clk(clk)
-                );
-            
+                
+
             end
-
-
-
         end
 
         endcase
