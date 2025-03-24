@@ -5,7 +5,7 @@ module module_alu (
     input [5:0] Imm,
     input [15:0] v1ULA,
     input [15:0] v2ULA,
-    input [1:0] stateCPU
+    input [1:0] stateCPU,
     input clk,
     /////////////////////////////////
 
@@ -16,14 +16,16 @@ module module_alu (
     ////////////////////////////////
 );
 
-    // ESTADOS DA CPU
+    // ESTADOS DA CPU ////////
     parameter OFF = 3'b000,
               FETCH = 3'b001,
               DECODE = 3'b010,
-              CALC = 3'b011,
-              DISPLAY_STORE = 3'b100;
+              READ = 3'b011,
+              CALC = 3'b100,
+              DISPLAY = 3'101,
+              STORE = 3'110;
 
-    // ESTADOS /////////////////
+    // OPERAÇÕES /////////////////
     parameter LOAD = 3'b000,
               ADD = 3'b001,
               ADDI = 3'b010,
@@ -32,16 +34,12 @@ module module_alu (
               MUL = 3'b101,
               CLEAR = 3'b110,
               DISPLAY = 3'b111;
-    ////////////////////////////
-
-    // REGS ////////////////////
 
     reg [2:0] state; // Estado da ULA
 
-    ////////////////////////////
 
-    // PRIMEIRO ALWAYS - ESTADO PRÓXIMO ////////////
     always @ (posedge clk) begin
+
         // Quando o estado for para DECODE, descobrir qual é a operação
         if (stateCPU == DECODE) begin
             case(opcode)
@@ -64,7 +62,7 @@ module module_alu (
         else decoded <= 1'b0;
     end
 
-    // SEGUNDO ALWAYS - SAÍDA /////////////////////////////////////
+    
     always @ (posedge clk) begin
         
         // Só fará o cálculo quando a CPU estiver no estado CALC
@@ -98,7 +96,7 @@ module module_alu (
                 // Se for CLEAR, resetar a RAM com todos os registradores iguais a zero
                 CLEAR: valorGuardarULA <= 16'b0000000000000000;
 
-                // Se for DISPLAY, nada será guardado na RAM
+                // Se for DISPLAY, nada será guardado na RAM (verificar isso depois)
                 DISPLAY: valorGuardarULA <= valorGuardarULA;
             endcase
 

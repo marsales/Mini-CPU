@@ -12,13 +12,15 @@ module module_mini_cpu (
     ///////////////////////////
 );
 
-    // ESTADOS
+    // ESTADOS DA CPU //////////
     parameter OFF = 3'b000,
               FETCH = 3'b001,
               DECODE = 3'b010,
-              CALC = 3'b011,
-              DISPLAY = 3'100,
-              STORE = 3'101;
+              READ = 3'b011,
+              CALC = 3'b100,
+              DISPLAY = 3'101,
+              STORE = 3'110;
+
 
     // OPERAÇÕES ///////////////
     parameter LOAD = 3'b000,
@@ -29,31 +31,27 @@ module module_mini_cpu (
               MUL = 3'b101,
               CLEAR = 3'b110,
               DISPLAY = 3'b111;
-    ///////////////////////////
 
 
-    // WIRES //////////////////////////////////////////////
 
     wire [15:0] resultadoULA; // Joga o resultado da operação da ULA para a RAM e o LCD
 
     wire [15:0] v1RAMpULALCD, v2RAMpULALCD; // Joga os valores guardados na RAM para a ULA e o LCD
 
-    ///////////////////////////////////////////////////////
-
-
-    // REGS ///////////////////////////////////////////////
-
     reg [2:0] state; // Estado da CPU
 
-    reg enviarPush, ligarPush;
+    reg enviarPush, ligarPush; // Verificar ENVIAR e LIGAR
 
-    reg [2:0] opcodeReg;
+    reg [2:0] opcodeReg; // Guardar opcode
 
+
+
+    // VERIFICAÇÕES //////////////////////////////////////////////////
     reg decoded; // Verifica se a ULA já descobriu qual é a operação
     reg calculated; // Verifica se a ULA já realizou a operação
     reg stored // Verifica se a RAM já armazenou o resultado final
+    reg read // Verifica se a RAM já realizou as leituras necessárias
 
-    ///////////////////////////////////////////////////////
 
 
     // RAM ////////////////////////////////////
@@ -66,7 +64,8 @@ module module_mini_cpu (
         .clk(clk),
         .v1RAM(v1RAMpULALCD),
         .v2RAM(v2RAMpULALCD),
-        .stored(stored)
+        .stored(stored),
+        .read(read)
     );
 
     // ULA /////////////////////////////////
@@ -91,130 +90,138 @@ module module_mini_cpu (
 
     // INICIALIZAÇÃO ////////////////////////
     initial begin
-        state <= FETCH;
+        state <= OFF;
         enviarPush <= 1'b1;
         ligarPush <= 1'b1;
     end
-    /////////////////////////////////////////
 
     always @ (posedge enviar, posedge ligar, posedge clk, negedge enviar, negedge ligar) begin
 
         case(state)
 
-        FETCH: begin
+            FETCH: begin
+                // Se LIGAR estiver sendo apertado
+                if (~ligar && ligarPush == 1'b1) ligarPush <= 1'b0;
 
-            // Se LIGAR estiver sendo apertado
-            if (~ligar && ligarPush == 1'b1) ligarPush <= 1'b0;
+                // Se LIGAR estiver sendo solto
+                if (ligar && ligarPush == 1'b0) begin
+                    ligarPush <= 1'b1;
+                    state <= OFF;
+                end
 
-            // Se LIGAR estiver sendo solto
-            if (ligar && ligarPush == 1'b0) begin
-                ligarPush <= 1'b1;
-                state <= OFF;
+                // Se ENVIAR estiver sendo apertado
+                if (~enviar && enviarPush == 1'b1) enviarPush <= 1'b0;
+
+                // Se ENVIAR estiver sendo solto
+                if (enviar && enviarPush == 1'b0) begin
+                    enviarPush <= 1'b1;
+                    opcodeReg <= opcode;
+                    state <= DECODE;
+                end
             end
 
-            // Se ENVIAR estiver sendo apertado
-            if (~enviar && enviarPush == 1'b1) enviarPush <= 1'b0;
+            DECODE: begin
+                // Se LIGAR estiver sendo apertado
+                if (~ligar && ligarPush == 1'b1) ligarPush <= 1'b0;
 
-            // Se ENVIAR estiver sendo solto
-            if (enviar && enviarPush == 1'b0) begin
-                enviarPush <= 1'b1;
-                opcodeReg <= opcode;
-                state <= DECODE;
-            end
-        end
+                // Se LIGAR estiver sendo solto
+                else if (ligar && ligarPush == 1'b0) begin
+                    ligarPush <= 1'b1;
+                    state <= OFF;
+                end
 
-        DECODE: begin
-
-            // Se LIGAR estiver sendo apertado
-            if (~ligar && ligarPush == 1'b1) ligarPush <= 1'b0;
-
-            // Se LIGAR estiver sendo solto
-            else if (ligar && ligarPush == 1'b0) begin
-                ligarPush <= 1'b1;
-                state <= OFF;
+                // Se a ULA descobriu a operação, fazer o cálculo
+                else begin
+                    if (decoded) state <= READ;
+                end
             end
 
-            // Se a ULA descobriu a operação, fazer o cálculo
-            else begin
-                if (decoded) state <= CALC;
-            end
-        end
+            READ: begin
+                // Se LIGAR estiver sendo apertado
+                if (~ligar && ligarPush == 1'b1) ligarPush <= 1'b0;
 
-        CALC: begin
+                // Se LIGAR estiver sendo solto
+                else if (ligar && ligarPush == 1'b0) begin
+                    ligarPush <= 1'b1;
+                    state <= OFF;
+                end
 
-            // Se LIGAR estiver sendo apertado
-            if (~ligar && ligarPush == 1'b1) ligarPush <= 1'b0;
-
-            // Se LIGAR estiver sendo solto
-            else if (ligar && ligarPush == 1'b0) begin
-                ligarPush <= 1'b1;
-                state <= OFF;
-            end
-
-            else begin
-                // Se a ULA realizou a operação, ir para DISPLAY_STORE
-                if (calculated) state <= DISPLAY_STORE;
-            end
-        end
-
-        DISPLAY: begin
-        
-            // Se LIGAR estiver sendo apertado
-            if (~ligar && ligarPush == 1'b1) ligarPush <= 1'b0;
-
-            // Se LIGAR estiver sendo solto
-            else if (ligar && ligarPush == 1'b0) begin
-                ligarPush <= 1'b1;
-                state <= OFF;
+                // Se a RAM fez a leitura, ir para CALC
+                else begin
+                    if (read) state <= CALC;
+                end
             end
 
-            else begin
+            CALC: begin
+                // Se LIGAR estiver sendo apertado
+                if (~ligar && ligarPush == 1'b1) ligarPush <= 1'b0;
 
-                // A saída da CPU recebe o resultado da operação que vem da ULA
-                result <= valorGuardarULA;
+                // Se LIGAR estiver sendo solto
+                else if (ligar && ligarPush == 1'b0) begin
+                    ligarPush <= 1'b1;
+                    state <= OFF;
+                end
 
-                // Lógica do LCD //
-
-                ///////////////////
-
-                state <= STORE;
-                
-            end
-        end
-
-        STORE: begin
-
-            // Se LIGAR estiver sendo apertado
-            if (~ligar && ligarPush == 1'b1) ligarPush <= 1'b0;
-
-            // Se LIGAR estiver sendo solto
-            else if (ligar && ligarPush == 1'b0) begin
-                ligarPush <= 1'b1;
-                state <= OFF;
-            end
-        
-            else begin
-                if (stored)
-            end
-        end
-
-        OFF: begin
-
-            // Se LIGAR estiver sendo apertado
-            if (~ligar && ligarPush == 1'b1) ligarPush <= 1'b0;
-
-            // Se LIGAR estiver sendo solto
-            else if (ligar && ligarPush == 1'b0) begin
-                ligarPush <= 1'b1;
-                state <= FETCH;
+                else begin
+                    // Se a ULA realizou a operação, ir para DISPLAY_STORE
+                    if (calculated) state <= DISPLAY;
+                end
             end
 
-            else begin
+            DISPLAY: begin
+                // Se LIGAR estiver sendo apertado
+                if (~ligar && ligarPush == 1'b1) ligarPush <= 1'b0;
 
-                
+                // Se LIGAR estiver sendo solto
+                else if (ligar && ligarPush == 1'b0) begin
+                    ligarPush <= 1'b1;
+                    state <= OFF;
+                end
 
+                else begin
+
+                    // A saída da CPU recebe o resultado da operação que vem da ULA
+                    result <= valorGuardarULA;
+
+                    // Lógica do LCD //
+                    
+                    ///////////////////
+
+                    state <= STORE;
+                    
+                end
             end
-        end
+
+            STORE: begin
+                // Se LIGAR estiver sendo apertado
+                if (~ligar && ligarPush == 1'b1) ligarPush <= 1'b0;
+
+                // Se LIGAR estiver sendo solto
+                else if (ligar && ligarPush == 1'b0) begin
+                    ligarPush <= 1'b1;
+                    state <= OFF;
+                end
+            
+                else begin
+                    if (stored)
+                end
+            end
+
+            OFF: begin
+                // Se LIGAR estiver sendo apertado
+                if (~ligar && ligarPush == 1'b1) ligarPush <= 1'b0;
+
+                // Se LIGAR estiver sendo solto
+                else if (ligar && ligarPush == 1'b0) begin
+                    ligarPush <= 1'b1;
+                    state <= FETCH;
+                end
+
+                // Lógica de desligar (tem q implementar ainda :p)
+                else begin
+
+                end
+            end
 
         endcase
     end

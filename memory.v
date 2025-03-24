@@ -8,18 +8,23 @@ module memory (
     input [15:0] valorGuardarRAM,
     input [1:0] stateCPU,
     input clk,
+    //////////////////////////////
 
     // OUTPUTS ///////////////////
-    output [15:0] v1RAM, v2RAM,
-    output reg stored
+    output reg [15:0] v1RAM, v2RAM,
+    output reg stored, read
+    //////////////////////////////
 );
 
-    // ESTADOS DA CPU ///////////////
+    // ESTADOS DA CPU //////////
     parameter OFF = 3'b000,
               FETCH = 3'b001,
               DECODE = 3'b010,
-              CALC = 3'b011,
-              DISPLAY_STORE = 3'100;
+              READ = 3'b011,
+              CALC = 3'b100,
+              DISPLAY = 3'b101,
+              STORE = 3'b110;
+
 
     // OPCODES /////////////////
     parameter LOAD = 3'b000,
@@ -37,13 +42,48 @@ module memory (
 
     reg [1:0] stateRAM; // Estado da RAM
 
-    reg [3:0] addrL1, addrL2, addrE; // Endereços
-
     integer i;
 
 
     always @ (posedge clk) begin
-        // Quando precisar escrever algo na RAM
+
+        // Quando o estado da CPU for READ
+        if (stateCPU == READ) begin
+
+            case(opcode)
+                ADD: begin
+                    v1RAM <= ram[addr1];
+                    v2RAM <= ram[addr2];
+                end
+                ADDI: v1RAM <= ram[addr1];
+                SUB: begin
+                    v1RAM <= ram[addr1];
+                    v2RAM <= ram[addr2];
+                end
+                SUBI: v1RAM <= ram[addr1];
+                MUL: v1RAM <= ram[addr1];
+                DISPLAY: v1RAM <= ram[addr1];
+
+                default begin end // Para quando for LOAD ou CLEAR (não ler nada)
+        
+                read <= 1'b1;
+
+            endcase
+
+        end
+        /* Quando a CPU mudar de estado de READ para CALC,
+        o read vai resetar para 0 novamente, e só voltará
+        a ser 1 quando uma nova leitura for realizada
+        */
+        else read <= 1'b0;
+    
+        
+    end
+
+
+    always @ (posedge clk) begin
+
+        // Quando o estado da CPU for STORE
         if (stateCPU == STORE) begin
             
             case(opcode)
@@ -53,13 +93,14 @@ module memory (
                 SUB: ram[addr3] <= valorGuardarRAM;
                 SUBI: ram[addr2] <= valorGuardarRAM;
                 MUL: ram[addr2] <= valorGuardarRAM;
-                CLEAR: for (i = 0; i < 16; i = i + 1) ram[i] <= 16'b0000000000000000;
+                CLEAR: for (i = 0; i < 16; i = i + 1) ram[i] <= 16'b000000000
             
                 default begin end // Para quando for DISPLAY (não guardar nada)
 
                 stored <= 1'b1;
             endcase
         end
+
         /* Quando a CPU mudar de estado de STORE para FETCH,
         o stored vai resetar para 0 novamente, e só voltará
         a ser 1 quando uma nova operação for realizada
@@ -67,34 +108,5 @@ module memory (
         else stored <= 1'b0;
     end
 
-  
-    always @ (stateRAM) begin
-
-        case(stateRAM)
-
-            WRITEONLY: begin
-                ram[addrE] <= valorGuardarRAM;
-            end
-
-            READANDWRITE: begin
-                ram[addrE] <= valorGuardarRAM;
-                v1RAM <= ram[addrL1];
-                v2RAM <= ram[addrL2];
-
-            end
-            
-            RESET: begin
-                for (i = 0; i < 16; i = i + 1) ram[i] <= 16'b0000000000000000;
-            end
-                
-            READONLY: begin
-                v1RAM <= ram[addrL1];
-            end
-            
-
-        endcase
-        
-    end
-    ////////////////////////////////////////////
 
 endmodule
