@@ -93,7 +93,7 @@ module memory (
                 SUB: ram[addr3] <= valorGuardarRAM;
                 SUBI: ram[addr2] <= valorGuardarRAM;
                 MUL: ram[addr2] <= valorGuardarRAM;
-                CLEAR: for (i = 0; i < 16; i = i + 1) ram[i] <= 16'b000000000
+                CLEAR: for (i = 0; i < 16; i = i + 1) ram[i] <= 16'b0000000000000000
             
                 default begin end // Para quando for DISPLAY (não guardar nada)
 
