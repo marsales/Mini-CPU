@@ -22,7 +22,7 @@ module memory (
               DECODE = 3'b010,
               READ = 3'b011,
               CALC = 3'b100,
-              DISPLAY = 3'b101,
+              SHOW = 3'b101,
               STORE = 3'b110;
 
 
@@ -64,11 +64,12 @@ module memory (
                 MUL: v1RAM <= ram[addr1];
                 DISPLAY: v1RAM <= ram[addr1];
 
-                default begin end // Para quando for LOAD ou CLEAR (não ler nada)
-        
-                read <= 1'b1;
+                default: begin end // Para quando for LOAD ou CLEAR (não ler nada)
+     
 
             endcase
+				
+				read <= 1'b1;
 
         end
         /* Quando a CPU mudar de estado de READ para CALC,
@@ -93,12 +94,14 @@ module memory (
                 SUB: ram[addr3] <= valorGuardarRAM;
                 SUBI: ram[addr2] <= valorGuardarRAM;
                 MUL: ram[addr2] <= valorGuardarRAM;
-                CLEAR: for (i = 0; i < 16; i = i + 1) ram[i] <= 16'b0000000000000000
+                CLEAR: for (i = 0; i < 16; i = i + 1) ram[i] <= 16'b0000000000000000;
             
-                default begin end // Para quando for DISPLAY (não guardar nada)
+                default: begin end // Para quando for DISPLAY (não guardar nada)
 
-                stored <= 1'b1;
+                
             endcase
+				
+				stored <= 1'b1;
         end
 
         /* Quando a CPU mudar de estado de STORE para FETCH,
