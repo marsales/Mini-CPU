@@ -10,7 +10,7 @@ module module_alu (
     /////////////////////////////////
 
     // OUTPUTS /////////////////////
-    output [15:0] valorGuardarULA,
+    output reg [15:0] valorGuardarULA,
     output reg decoded,
     output reg calculated
     ////////////////////////////////
@@ -22,8 +22,8 @@ module module_alu (
               DECODE = 3'b010,
               READ = 3'b011,
               CALC = 3'b100,
-              DISPLAY = 3'101,
-              STORE = 3'110;
+              SHOW = 3'b101,
+              STORE = 3'b110;
 
     // OPERAÇÕES /////////////////
     parameter LOAD = 3'b000,
