@@ -6,16 +6,19 @@ module memory (
     input [3:0] addr3,
     input [2:0] opcode,
     input [15:0] valorGuardarRAM,
-    input [1:0] stateCPU,
+    input [2:0] stateCPU,
     input clk,
     //////////////////////////////
 
     // OUTPUTS ///////////////////
     output reg [15:0] v1RAM, v2RAM,
-    output reg stored, read
+    output stored, read
     //////////////////////////////
 );
 
+	 reg storedReg;
+	 reg readReg;
+	 
     // ESTADOS DA CPU //////////
     parameter OFF = 3'b000,
               FETCH = 3'b001,
@@ -40,9 +43,12 @@ module memory (
     // VARIÁVEIS ////////////////////////////
     reg [15:0] ram [15:0]; // Variável da RAM
 
-    reg [1:0] stateRAM; // Estado da RAM
-
     integer i;
+	 
+	 initial begin
+		storedReg <= 1'b0;
+		readReg <= 1'b0;
+	 end
 
 
     always @ (posedge clk) begin
@@ -69,14 +75,14 @@ module memory (
 
             endcase
 				
-				read <= 1'b1;
+				readReg <= 1'b1;
 
         end
         /* Quando a CPU mudar de estado de READ para CALC,
         o read vai resetar para 0 novamente, e só voltará
         a ser 1 quando uma nova leitura for realizada
         */
-        else read <= 1'b0;
+        else readReg <= 1'b0;
     
         
     end
@@ -101,15 +107,21 @@ module memory (
                 
             endcase
 				
-				stored <= 1'b1;
+				storedReg <= 1'b1;
         end
 
         /* Quando a CPU mudar de estado de STORE para FETCH,
         o stored vai resetar para 0 novamente, e só voltará
         a ser 1 quando uma nova operação for realizada
         */
-        else stored <= 1'b0;
+		  
+		  else if (stateCPU == FETCH) storedReg <= 1'b0;
     end
+	 
+	 
+	 assign stored = storedReg;
+	 assign read = readReg;
 
 
 endmodule
+
