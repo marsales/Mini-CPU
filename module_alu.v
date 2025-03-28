@@ -5,16 +5,22 @@ module module_alu (
     input [5:0] Imm,
     input [15:0] v1ULA,
     input [15:0] v2ULA,
-    input [1:0] stateCPU,
+    input [2:0] stateCPU,
     input clk,
     /////////////////////////////////
 
     // OUTPUTS /////////////////////
-    output reg [15:0] valorGuardarULA,
-    output reg decoded,
-    output reg calculated
+    output [15:0] valorGuardarULA,
+    output decoded,
+    output calculated
     ////////////////////////////////
 );
+
+	 reg decodedReg;
+	 reg calculatedReg;
+	 
+	 reg [15:0] resultReg;
+	 
 
     // ESTADOS DA CPU ////////
     parameter OFF = 3'b000,
@@ -36,6 +42,11 @@ module module_alu (
               DISPLAY = 3'b111;
 
     reg [2:0] state; // Estado da ULA
+	 
+	 initial begin
+		decodedReg <= 1'b0;
+		calculatedReg <= 1'b0;
+	 end
 
 
     always @ (posedge clk) begin
@@ -52,14 +63,14 @@ module module_alu (
                 CLEAR: state <= CLEAR;
                 DISPLAY: state <= DISPLAY;
             endcase
-            decoded <= 1'b1;
+            decodedReg <= 1'b1;
         end
         
         /* Quando a CPU mudar de estado de DECODE para CALC,
         o decoded vai resetar para 0 novamente, e só voltará
         a ser 1 quando uma nova instrução for decodificada
         */
-        else decoded <= 1'b0;
+        else decodedReg <= 1'b0;
     end
 
     
@@ -69,45 +80,49 @@ module module_alu (
         if (stateCPU == CALC) begin
             case(state)
                 // Se for LOAD, apenas armazenar Imm
-                LOAD: valorGuardarULA <= {sinalImm, Imm}; 
+                LOAD: resultReg <= {sinalImm, Imm}; 
 
-                ADD: valorGuardarULA <= v1ULA + v2ULA;
+                ADD: resultReg <= v1ULA + v2ULA;
 
                 ADDI: begin
                     // Se Imm for negativo, vira subtração
-                    if (sinalImm) valorGuardarULA <= v1ULA - Imm;
-                    else valorGuardarULA <= v1ULA + Imm;
+                    if (sinalImm) resultReg <= v1ULA - Imm;
+                    else resultReg <= v1ULA + Imm;
                 end
 
-                SUB: valorGuardarULA <= v1ULA - v2ULA;
+                SUB: resultReg <= v1ULA - v2ULA;
 
                 SUBI: begin
                     // Se Imm for negativo, vira soma
-                    if (sinalImm) valorGuardarULA <= v1ULA + Imm;
-                    else valorGuardarULA <= v1ULA - Imm;
+                    if (sinalImm) resultReg <= v1ULA + Imm;
+                    else resultReg <= v1ULA - Imm;
                 end
 
                 MUL: begin
                     // Se Imm for negativo, troca o sinal do resultado
-                    if (sinalImm) valorGuardarULA <= v1ULA * Imm * -1;
-                    else valorGuardarULA <= v1ULA * Imm;
+                    if (sinalImm) resultReg <= v1ULA * Imm * -1;
+                    else resultReg <= v1ULA * Imm;
                 end
 
                 // Se for CLEAR, resetar a RAM com todos os registradores iguais a zero
-                CLEAR: valorGuardarULA <= 16'b0000000000000000;
+                CLEAR: resultReg <= 16'b0000000000000000;
 
                 // Se for DISPLAY, nada será guardado na RAM (verificar isso depois)
-                DISPLAY: valorGuardarULA <= valorGuardarULA;
+                DISPLAY: resultReg <= resultReg;
             endcase
 
-            calculated <= 1'b1;
+            calculatedReg <= 1'b1;
         end
 
         /* Quando a CPU mudar de estado de CALC para DISPLAY_STORE,
         o calculated vai resetar para 0 novamente, e só voltará
         a ser 1 quando um novo cálculo for realizado
         */
-        else calculated <= 1'b0;
+        else calculatedReg <= 1'b0;
     end
+	 
+	 assign calculated = calculatedReg;
+	 assign decoded = decodedReg;
+	 assign valorGuardarULA = resultReg;
 
 endmodule
