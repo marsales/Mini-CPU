@@ -9,7 +9,7 @@ module module_mini_cpu (
 
     // OUTPUTS ////////////////
     output [15:0] result,
-	 output on, botao,
+	 output on,
 	 output [2:0] estado
     ///////////////////////////
 );
@@ -42,17 +42,18 @@ module module_mini_cpu (
 
     reg [2:0] state = OFF; // Estado da CPU
 
-    reg ligarApertou; // Verificar ENVIAR e LIGAR
+    reg ligarApertou, enviarApertou; // Verificar ENVIAR e LIGAR
 
     reg [2:0] opcodeReg; // Guardar opcode
+	 reg [3:0] addr1Reg;
+	 reg [3:0] addr2Reg;
+	 reg [6:0] addr3OuImmReg;
 
 	 
 	 
 	 reg onReg;
 	 reg [15:0] resultReg;
-	 reg botaoReg;
 	 reg [2:0] estadoReg;
-	 reg inicio;
 	 
 	 
 
@@ -66,12 +67,15 @@ module module_mini_cpu (
 
     // RAM ////////////////////////////////////
     memory memoriaRAM (
-        .addr1(addr1),
-        .addr2(addr2),
-        .addr3(addr3OuImm[6:3]),
+		  // ENTRADAS
+        .addr1(addr1Reg),
+        .addr2(addr2Reg),
+        .addr3(addr3OuImmReg[6:3]),
         .opcode(opcodeReg),
         .valorGuardarRAM(valorGuardarULA),
+		  .stateCPU(state),
         .clk(clk),
+		  // SAÍDAS
         .v1RAM(v1RAMpULALCD),
         .v2RAM(v2RAMpULALCD),
         .stored(stored),
@@ -80,12 +84,15 @@ module module_mini_cpu (
 
     // ULA /////////////////////////////////
     module_alu ula (
+		  // ENTRADAS
         .opcode(opcodeReg),
-        .sinalImm(addr3OuImm[6]),
-        .Imm(addr3OuImm[5:0]),
+        .sinalImm(addr3OuImmReg[6]),
+        .Imm(addr3OuImmReg[5:0]),
         .v1ULA(v1RAM),
         .v2ULA(v2RAM),
         .clk(clk),
+		  .stateCPU(state),
+		  // SAÍDAS
         .valorGuardarULA(resultadoULA),
         .decoded(decoded),
         .calculated(calculated)
@@ -103,7 +110,6 @@ module module_mini_cpu (
     // INICIALIZAÇÃO ////////////////////////
     initial begin
         state <= OFF;
-		  botaoReg <= 1'b0;
     end
 	 
 
@@ -116,24 +122,33 @@ module module_mini_cpu (
             FETCH: begin    
                
 					 
-					 /*
-
-                // Se ENVIAR estiver solto E ainda não verificou soltura
-                if (enviar && ~enviarSolto) begin
-                    enviarSolto <= 1'b1;
-                    opcodeReg <= opcode;
-                    state <= DECODE;
-                end
+					 // ---------------------- ENVIAR ---------------------- //
+					
+					  // Se estiver apertando ENVIAR
+					  if (~enviar) enviarApertou <= 1'b1;
+								
+					  // Se LIGAR estiver solto
+					  else begin
+								
+							// Se tiver apertado ENVIAR
+							if (enviarApertou) begin
+									enviarApertou <= 1'b0;
+									opcodeReg <= opcode;
+									addr1Reg <= addr1;
+									addr2Reg <= addr2;
+									addr3OuImmReg <= addr3OuImm;
+									state <= DECODE;
+							end
+					  end
+					
+					// --------------------------------------------------- //
 					 
-					 // Se ENVIAR estiver apertado OU se já verificou soltura
-					 if (~enviar && enviarSolto) enviarSolto <= 1'b0;
-	
-					 */
+					 
+					 
 					 onReg <= 1'b0;
 					 
 					 
-					 if (ligar) botaoReg <= 1'b0;
-					 else botaoReg <= 1'b1;
+			
 					 
 					 estadoReg <= state;
 					 
@@ -147,15 +162,12 @@ module module_mini_cpu (
 
             DECODE: begin
 				
- 
 					 
 					 if (decoded) state <= READ;
 					 
 					 onReg <= 1'b0;
 					 
-					 
-					 if (ligar) botaoReg <= 1'b0;
-					 else botaoReg <= 1'b1;
+	
 					 
 					 estadoReg <= state;
             end
@@ -169,8 +181,7 @@ module module_mini_cpu (
 
             READ: begin
 				
-              
-					
+          
 	
                 if (read) state <= CALC;
 						
@@ -178,8 +189,7 @@ module module_mini_cpu (
 					 
 					 onReg <= 1'b0;
 					 
-					 if (ligar) botaoReg <= 1'b0;
-					 else botaoReg <= 1'b1;
+	
 					 
 					 estadoReg <= state;
 					 
@@ -204,8 +214,7 @@ module module_mini_cpu (
 					 
 					 onReg <= 1'b0;
 					 
-					 if (ligar) botaoReg <= 1'b0;
-					 else botaoReg <= 1'b1;
+			
 					 
 					 estadoReg <= state;
                 
@@ -234,9 +243,7 @@ module module_mini_cpu (
 					 
 					 onReg <= 1'b0;
 					 
-					 if (ligar) botaoReg <= 1'b0;
-					 else botaoReg <= 1'b1;
-					 
+		
 					 
 					 estadoReg <= state;
             end
@@ -252,9 +259,6 @@ module module_mini_cpu (
 				
 					
 					onReg <= 1'b0;
-					
-					if (ligar) botaoReg <= 1'b0;
-					else botaoReg <= 1'b1;
                 
 					 
 					 
@@ -265,8 +269,7 @@ module module_mini_cpu (
             OFF: begin
 					 
 					 onReg <= 1'b1;
-					 if (ligar) botaoReg <= 1'b0;
-					 else botaoReg <= 1'b1;
+					 
 					 estadoReg <= state;
 		
             end
@@ -299,31 +302,6 @@ module module_mini_cpu (
 	 
 	 assign on = onReg;
 	 assign result = resultReg;
-	 assign botao = botaoReg;
 	 assign estado = estadoReg;
-	 
-	 /*
-	    // Se LIGAR estiver solto OU for inicio E entrou agora no estado
-					 if ((ligar || inicio) && entrouAgoraEstado) begin
-							entrouAgoraEstado <= 1'b0;
-							inicio <= 1'b0;
-					 end
-					 
-				
-				
-                // Se LIGAR estiver apertado E não entrou agora no estado
-                else if (~ligar && ~entrouAgoraEstado) begin
-                    ligarApertou <= 1'b1;
-                end
-					 
-		
-					 // Se LIGAR estiver solto E não entrou agora no estado E LIGAR foi apertado
-					 else if (ligar && ~entrouAgoraEstado && ligarApertou) begin
-							ligarApertou <= 1'b0;
-							entrouAgoraEstado <= 1'b1;
-							state <= FETCH;
-					 end
-	 */
-	 
 	 
 endmodule
