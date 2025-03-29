@@ -25,8 +25,9 @@ module memory (
               DECODE = 3'b010,
               READ = 3'b011,
               CALC = 3'b100,
-              SHOW = 3'b101,
-              STORE = 3'b110;
+				  WAIT = 3'b101,
+				  STORE = 3'b110,
+              SHOW = 3'b111;
 
 
     // OPCODES /////////////////
@@ -124,4 +125,3 @@ module memory (
 
 
 endmodule
-
