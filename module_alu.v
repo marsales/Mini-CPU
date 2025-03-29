@@ -18,18 +18,19 @@ module module_alu (
 
 	 reg decodedReg;
 	 reg calculatedReg;
-	 
 	 reg [15:0] resultReg;
 	 
 
-    // ESTADOS DA CPU ////////
+    // ESTADOS DA CPU //////////
     parameter OFF = 3'b000,
               FETCH = 3'b001,
               DECODE = 3'b010,
               READ = 3'b011,
               CALC = 3'b100,
-              SHOW = 3'b101,
-              STORE = 3'b110;
+				  WAIT = 3'b101,
+				  STORE = 3'b110,
+              SHOW = 3'b111;
+				  
 
     // OPERAÇÕES /////////////////
     parameter LOAD = 3'b000,
@@ -114,15 +115,15 @@ module module_alu (
             calculatedReg <= 1'b1;
         end
 
-        /* Quando a CPU mudar de estado de CALC para DISPLAY_STORE,
+        /* Quando a CPU mudar de estado de CALC para ,
         o calculated vai resetar para 0 novamente, e só voltará
         a ser 1 quando um novo cálculo for realizado
         */
         else calculatedReg <= 1'b0;
     end
 	 
+	 assign valorGuardarULA = resultReg;
 	 assign calculated = calculatedReg;
 	 assign decoded = decodedReg;
-	 assign valorGuardarULA = resultReg;
 
 endmodule
