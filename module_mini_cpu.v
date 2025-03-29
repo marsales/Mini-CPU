@@ -20,10 +20,11 @@ module module_mini_cpu (
               DECODE = 3'b010,
               READ = 3'b011,
               CALC = 3'b100,
-              SHOW = 3'b101,
-              STORE = 3'b110;
-
-
+				  WAIT = 3'b101,
+				  STORE = 3'b110,
+              SHOW = 3'b111;
+ 
+				  
     // OPERAÇÕES ///////////////
     parameter LOAD = 3'b000,
               ADD = 3'b001,
@@ -55,6 +56,8 @@ module module_mini_cpu (
 	 reg [15:0] resultReg;
 	 reg [2:0] estadoReg;
 	 
+	 reg [15:0] buffer;
+	 
 	 
 
     // VERIFICAÇÕES //////////////////////////////////////////////////
@@ -72,7 +75,7 @@ module module_mini_cpu (
         .addr2(addr2Reg),
         .addr3(addr3OuImmReg[6:3]),
         .opcode(opcodeReg),
-        .valorGuardarRAM(valorGuardarULA),
+        .valorGuardarRAM(resultadoULA),
 		  .stateCPU(state),
         .clk(clk),
 		  // SAÍDAS
@@ -88,8 +91,8 @@ module module_mini_cpu (
         .opcode(opcodeReg),
         .sinalImm(addr3OuImmReg[6]),
         .Imm(addr3OuImmReg[5:0]),
-        .v1ULA(v1RAM),
-        .v2ULA(v2RAM),
+        .v1ULA(v1RAMpULALCD),
+        .v2ULA(v2RAMpULALCD),
         .clk(clk),
 		  .stateCPU(state),
 		  // SAÍDAS
@@ -127,7 +130,7 @@ module module_mini_cpu (
 					  // Se estiver apertando ENVIAR
 					  if (~enviar) enviarApertou <= 1'b1;
 								
-					  // Se LIGAR estiver solto
+					  // Se ENVIAR estiver solto
 					  else begin
 								
 							// Se tiver apertado ENVIAR
@@ -146,9 +149,6 @@ module module_mini_cpu (
 					 
 					 
 					 onReg <= 1'b0;
-					 
-					 
-			
 					 
 					 estadoReg <= state;
 					 
@@ -207,9 +207,9 @@ module module_mini_cpu (
 					 
 					 
 	 
-					 
-					if (calculated) state <= SHOW;
-						 
+					 	 
+					if (calculated) state <= WAIT;
+					
 					 
 					 
 					 onReg <= 1'b0;
@@ -222,7 +222,26 @@ module module_mini_cpu (
 				
 				
 				
+				WAIT: begin
 				
+					state <= STORE;
+				
+				end
+				
+				
+				
+				STORE: begin
+				 
+				
+					if (stored) state <= SHOW;
+				
+					
+					onReg <= 1'b0;
+                
+					 
+					 
+					estadoReg <= state;
+				end
 				
 
             SHOW: begin
@@ -230,13 +249,13 @@ module module_mini_cpu (
 
 
 				    // A saída da CPU recebe o resultado da operação que vem da ULA
-				    resultReg <= valorGuardarULA;
+				    resultReg <= resultadoULA;
 
 				    // Lógica do LCD //
 					  
 				    ///////////////////
 
-				    state <= STORE;
+				    state <= FETCH;
 					  
                     
                 
@@ -252,18 +271,8 @@ module module_mini_cpu (
 				
 				
 
-            STORE: begin
-				 
+           
 				
-					if (stored) state <= FETCH;
-				
-					
-					onReg <= 1'b0;
-                
-					 
-					 
-					estadoReg <= state;
-				end
             
 
             OFF: begin
@@ -288,9 +297,9 @@ module module_mini_cpu (
 					
 				// Se tiver apertado LIGAR
 				if (ligarApertou) begin
-							ligarApertou <= 1'b0;
-							if (state == OFF) state <= FETCH;
-							else state <= OFF;
+						ligarApertou <= 1'b0;
+						if (state == OFF) state <= FETCH;
+						else state <= OFF;
 				end
 		  end
 					
