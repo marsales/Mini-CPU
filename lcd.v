@@ -1,8 +1,8 @@
 module lcd (
     input [2:0] opcode,
     input [15:0] result,
-    input [3:0] reg1, reg2, reg3;
-    input [3:0] estadoCpu;
+    input [3:0] reg1, reg2, reg3,
+    input [3:0] estadoCpu,
     input clk,
 
     output reg EN, RW, RS,
@@ -32,6 +32,7 @@ module lcd (
     reg [7:0] instructions = 0;
     reg [31:0] counter = 0;
     reg [7:0] d_milhar, milhar, centena, dezena, unidade, dm, m, c, d, u;
+    reg sinal;
 
 
     initial begin
@@ -40,6 +41,7 @@ module lcd (
         centena = 0; 
         dezena = 0; 
         unidade = 0;
+        sinal = 0;
         EN = 0;
         RW = 0;
         RS = 0;
@@ -119,11 +121,12 @@ module lcd (
 
             else if (opcode != LOAD) begin
 
-                    unidade <= result % 10;             // Obtém a unidade
-                    dezena <= (result / 10) % 10;       // Obtém a dezena
-                    centena <= (result / 100) % 10;     // Obtém a centena
-                    milhar <= (result / 1000) % 10;     // Obtém o milhar
-                    d_milhar <= (result / 10000) % 10;  // Obtém a dezena de milhar
+                unidade <= result[14:0] % 10;             // Obtém a unidade
+                dezena <= (result[14:0] / 10) % 10;       // Obtém a dezena
+                centena <= (result[14:0] / 100) % 10;     // Obtém a centena
+                milhar <= (result[14:0] / 1000) % 10;     // Obtém o milhar
+                d_milhar <= (result[14:0] / 10000) % 10;  // Obtém a dezena de milhar
+                sinal <= result[15];                      // bit de sinal
 
               
 
@@ -136,28 +139,28 @@ module lcd (
 
                     // operação de addi ou subi escrita (4 letras)
                     5: begin 
-                        if (opcode == ADDI || opcode == ADD) data <= 8'h41; RS <= 1; // A
-                        else if (opcode == SUBI || opcode == SUB) data <= 8'h53; RS <= 1; // S
-                        else if (opcode == MUL) data <= 8'h4D; RS <= 1; // M
-                        else if (opcode == DISPLAY) data <= 8'h44; RS <= 1; // D
+                        if (opcode == ADDI || opcode == ADD) begin data <= 8'h41; RS <= 1; end // A
+                        else if (opcode == SUBI || opcode == SUB) begin data <= 8'h53; RS <= 1; end // S
+                        else if (opcode == MUL) begin data <= 8'h4D; RS <= 1; end // M
+                        else if (opcode == DISPLAY) begin data <= 8'h44; RS <= 1; end // D
                         end 
 
                     6: begin 
-                        if (opcode == ADDI || opcode == ADD) data <= 8'h44; RS <= 1; // D 
-                        else if (opcode == SUBI || opcode == SUB || opcode == MUL) data <= 8'h55; RS <= 1; // U 
-                        else if (opcode == DISPLAY) data <= 8'h50; RS <= 1; // P
+                        if (opcode == ADDI || opcode == ADD) begin data <= 8'h44; RS <= 1; end // D 
+                        else if (opcode == SUBI || opcode == SUB || opcode == MUL) begin data <= 8'h55; RS <= 1; end // U 
+                        else if (opcode == DISPLAY) begin data <= 8'h50; RS <= 1; end // P
                         
                     end
 
 
                     7:  begin 
-                        if (opcode == ADDI || opcode == ADD) data <= 8'h44; RS <= 1; // D 
-                        else if (opcode == SUB || opcode == SUBI) data <= 8'h42; RS <= 1; // B
-                        else if (opcode == MUL || opcode == DISPLAY) data <= 8'h4C; RS <= 1; // L
+                        if (opcode == ADDI || opcode == ADD) begin data <= 8'h44; RS <= 1; end // D 
+                        else if (opcode == SUB || opcode == SUBI) begin data <= 8'h42; RS <= 1; end // B
+                        else if (opcode == MUL || opcode == DISPLAY) begin data <= 8'h4C; RS <= 1; end // L
                     end
 
                     8: begin 
-                        if (opcode == ADDI || opcode == SUBI) data <= 8'h44; RS <= 1; // I
+                        if (opcode == ADDI || opcode == SUBI) begin data <= 8'h44; RS <= 1; end // I
                     end
         
 
@@ -168,7 +171,7 @@ module lcd (
                     12: begin data <= 8'h20; RS <= 1; end // espaço
                     13: begin data <= 8'h20; RS <= 1; end // espaço
                     14: begin 
-                        if (opcode == ADD || opcode == SUB || opcode == MUL || opcode == DISPLAY) data <= 8'h20; RS <= 1;  // espaço
+                        if (opcode == ADD || opcode == SUB || opcode == MUL || opcode == DISPLAY) begin  data <= 8'h20; RS <= 1; end // espaço
                         end 
 
 
@@ -254,43 +257,28 @@ module lcd (
                     30: begin data <= 8'h20; RS <= 1; end // espaço
                     31: begin data <= 8'h20; RS <= 1; end // espaço
 
+                    // sinal
+                    32: begin 
 
-                    // resultado
-                    //: begin data <= 8'h30 + d_milhar; RS <= 1; end
-                    //: begin data <= 8'h30 + milhar; RS <= 1; end
-                    //: begin data <= 8'h30 + centena; RS <= 1; end
-                    //: begin data <= 8'h30 + dezena; RS <= 1; end
-                    //: begin data <= 8'h30 + unidade; RS <= 1; end
+                        if (sinal == 0) begin 
+                            data <= 8'h2B; RS <= 1;    // +
+                        end
 
+                        else begin data <= 8'h2D; RS <= 1; end  // -
+                    end
 
+                    // módulo do resultado
+                    33: begin data <= 8'h30 + d_milhar; RS <= 1; end
+                    34: begin data <= 8'h30 + milhar; RS <= 1; end
+                    35: begin data <= 8'h30 + centena; RS <= 1; end
+                    36: begin data <= 8'h30 + dezena; RS <= 1; end
+                    37: begin data <= 8'h30 + unidade; RS <= 1; end
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                        default: begin data <= 8'h02; RS <= 0; end // volta para home
+                    default: begin data <= 8'h02; RS <= 0; end // volta para home
                 
-                endcase
-                
+                endcase                
             end
         end
-
-
-
     end
-
-
-
 
 endmodule
