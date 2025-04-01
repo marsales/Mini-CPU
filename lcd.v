@@ -6,7 +6,6 @@ module lcd (
     input clk,
 
     output reg EN, RW, RS,
-    output reg shown,
     output reg [7:0] data
 );
 
@@ -82,7 +81,7 @@ module lcd (
 
         end
 
-        else if (estadoCpu == SHOW && ~shown) begin
+        else if (estadoCpu == SHOW) begin
 
             case(state)
 
@@ -99,10 +98,10 @@ module lcd (
                         counter <= 0;
                         state <= WRITE;
 
-                        if (opcode != LOAD) begin 
-                            if (instructions < 38) instructions <= instructions + 1;
+                        //if (opcode != LOAD) begin 
+                        if (instructions < 38) instructions <= instructions + 1;
 
-                        end
+                        //end
                     end
                     else counter <= counter + 1;
 
@@ -134,7 +133,7 @@ module lcd (
 
         end
 
-        else if (estadoCpu == SHOW && ~shown) begin
+        else if (estadoCpu == SHOW) begin
 
             case (state)
                 WRITE: EN <= 1;
@@ -142,7 +141,7 @@ module lcd (
                 default: EN <= EN;
             endcase
 
-            if (opcode != LOAD) begin
+            //if (opcode != LOAD) begin
 
                 unidade <= result[14:0] % 10;             // Obtém a unidade
                 dezena <= (result[14:0] / 10) % 10;       // Obtém a dezena
@@ -168,6 +167,7 @@ module lcd (
                         else if (opcode == MUL) begin data <= 8'h4D; RS <= 1; end // M
                         else if (opcode == DISPLAY) begin data <= 8'h44; RS <= 1; end // D
                         else if (opcode == CLEAR) begin data <= 8'h43; RS <= 1; end   // C
+                        else if (opcode == LOAD) begin data <= 8'h43; RS <= 1; end   // C
                     end 
                         
 
@@ -348,11 +348,8 @@ module lcd (
                     default: begin data <= 8'h02; RS <= 0; end // volta para home
                 
                 endcase                
-            end
+            //end
         end
-
-        shown <= 1;
-
     end
 
 endmodule
