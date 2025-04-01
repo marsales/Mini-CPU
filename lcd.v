@@ -6,6 +6,7 @@ module lcd (
     input clk,
 
     output reg EN, RW, RS,
+    output reg shown,
     output reg [7:0] data
 );
 
@@ -47,6 +48,7 @@ module lcd (
         RW = 0;
         RS = 0;
         data = 0;
+        shown = 0;
     end
 
 
@@ -80,7 +82,7 @@ module lcd (
 
         end
 
-        else if (estadoCpu == SHOW) begin
+        else if (estadoCpu == SHOW && ~shown) begin
             case(state)
 
                 WRITE: begin
@@ -131,7 +133,7 @@ module lcd (
 
         end
 
-        else if (estadoCpu == SHOW) begin
+        else if (estadoCpu == SHOW && ~shown) begin
 
             case (state)
                 WRITE: EN <= 1;
@@ -348,9 +350,7 @@ module lcd (
             end
         end
 
-
-
-
+        shown <= 1;
 
     end
 
