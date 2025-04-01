@@ -9,8 +9,9 @@ module lcd (
     output reg [15:0] data
 );
 
-    // estado da CPU para ligar o display
+    // estado da CPU para mostrar o display
     parameter SHOW = 3'b101;
+    parameter OFF = 3'b000;
 
     // OPCODES ////////
     parameter LOAD = 3'b000,
@@ -51,7 +52,35 @@ module lcd (
 
     always @(posedge clk) begin
 
-        if(estadoCpu == SHOW) begin
+        if (estadoCpu == OFF) begin 
+
+            case(state)
+
+                WRITE: begin
+                    if(counter == MS - 1) begin
+                        counter <= 0;
+                        state <= WAIT;
+                    end
+                    else counter <= counter + 1;
+                end
+
+                WAIT : begin
+                    if(counter == MS - 1) begin
+                        counter <= 0;
+                        state <= WRITE;
+                        if (instructions < 1) instructions <= instructions + 1;
+
+                    end
+                    else counter <= counter + 1;
+
+                end
+                default: begin end
+            endcase
+
+
+        end
+
+        else if (estadoCpu == SHOW) begin
             case(state)
 
                 WRITE: begin
@@ -85,12 +114,29 @@ module lcd (
 
     always @(posedge clk) begin
 
-        if (estadoCpu == SHOW) begin
+        if (estadoCpu == OFF) begin 
 
             case (state)
-            WRITE: EN <= 1;
-            WAIT: EN <= 0;
-            default: EN <= EN;
+                WRITE: EN <= 1;
+                WAIT: EN <= 0;
+                default: EN <= EN;
+            endcase
+
+            case (instructions) 
+
+                1: begin data <= 8'h08; RS <= 0; end // apaga
+                
+            endcase
+
+
+        end
+
+        else if (estadoCpu == SHOW) begin
+
+            case (state)
+                WRITE: EN <= 1;
+                WAIT: EN <= 0;
+                default: EN <= EN;
             endcase
 
             if (opcode != LOAD) begin
@@ -301,6 +347,11 @@ module lcd (
                 endcase                
             end
         end
+
+
+
+
+
     end
 
 endmodule
