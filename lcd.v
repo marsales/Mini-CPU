@@ -160,19 +160,19 @@ module lcd (
                     end
 
                     8: begin 
-                        if (opcode == ADDI || opcode == SUBI) begin data <= 8'h44; RS <= 1; end // I
+                        if (opcode == ADDI || opcode == SUBI) begin data <= 8'h44; RS <= 1; end   // I
+                        else begin data <= 8'h20; RS <= 1; end                                    // espaço para os casos que a operação tem três letras
                     end
         
 
-                    // espaços
+                    // espaços (6 deles)
                     9: begin data <= 8'h20; RS <= 1; end // espaço
                     10: begin data <= 8'h20; RS <= 1; end // espaço
                     11: begin data <= 8'h20; RS <= 1; end // espaço
                     12: begin data <= 8'h20; RS <= 1; end // espaço
                     13: begin data <= 8'h20; RS <= 1; end // espaço
-                    14: begin 
-                        if (opcode == ADD || opcode == SUB || opcode == MUL || opcode == DISPLAY) begin  data <= 8'h20; RS <= 1; end // espaço
-                        end 
+                    14: begin data <= 8'h20; RS <= 1; end // espaço
+                       
 
 
                     // qual registrador print
@@ -241,8 +241,15 @@ module lcd (
 
                     20: begin data <= 8'h5D; RS <= 1; end // ]
 
+
+
+
                     // pula linha
                     21: begin data <= 8'hC0; RS <= 0; end 
+
+
+
+
 
 
                     // espaços linha 2 (10 deles)
@@ -257,14 +264,11 @@ module lcd (
                     30: begin data <= 8'h20; RS <= 1; end // espaço
                     31: begin data <= 8'h20; RS <= 1; end // espaço
 
-                    // sinal
+                    // sinal do resultado
                     32: begin 
 
-                        if (sinal == 0) begin 
-                            data <= 8'h2B; RS <= 1;    // +
-                        end
-
-                        else begin data <= 8'h2D; RS <= 1; end  // -
+                        if (sinal == 0) begin  data <= 8'h2B; RS <= 1; end       // +
+                        else begin data <= 8'h2D; RS <= 1; end                   // -
                     end
 
                     // módulo do resultado
