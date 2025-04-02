@@ -32,7 +32,6 @@ module lcd (
     reg state = WRITE;
 
     reg [7:0] instructions = 0;
-    reg [1:0] init_show = 0;
     reg [31:0] counter = 0;
     reg [7:0] d_milhar, milhar, centena, dezena, unidade, dm, m, c, d, u;
     reg sinal;
@@ -77,7 +76,7 @@ module lcd (
                         if (instructions <=  1) instructions <= instructions + 1;
 						else begin 
                             instructions <= 0; 
-                            init_show <= 1;
+                      
                         end
 								
 
@@ -111,7 +110,7 @@ module lcd (
                         if (instructions < 39) instructions <= instructions + 1;
                         else begin 
                             instructions <= 0;
-                            init_show <= 1;
+                           
                             end
                         //end
                     end
@@ -128,12 +127,8 @@ module lcd (
 
     always @(posedge clk) begin
 
-        if (estadoCpu == STORE) begin 
-            init_show <= 0;
-            
-        end
 
-        else if (init_show == 0) begin
+      //  else if (init_show == 0) begin
 
             if (estadoCpu == OFF) begin 
 
@@ -375,7 +370,6 @@ module lcd (
                     endcase                
                 //end
             end
-        end
     end
 
 endmodule
