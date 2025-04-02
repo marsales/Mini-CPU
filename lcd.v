@@ -1,8 +1,8 @@
-module lcd (
+module test (
     input [2:0] opcode,
-    input [15:0] result,
-    input [3:0] reg1, reg2, reg3,
-    input [3:0] estadoCpu,
+    //input [15:0] result,
+    //input [3:0] reg1, reg2, reg3,
+    input [2:0] estadoCpu,
     input clk,
 
     output reg EN, RW, RS,
@@ -34,6 +34,10 @@ module lcd (
     reg [31:0] counter = 0;
     reg [7:0] d_milhar, milhar, centena, dezena, unidade, dm, m, c, d, u;
     reg sinal;
+    reg [3:0] reg1 = 4'b0001; 
+	 reg [3:0] reg2 = 4'b0010;
+	 reg [3:0] reg3 = 4'b0011;
+    reg [15:0] result = 16'b1000010001010011;
 
 
     initial begin
@@ -47,7 +51,6 @@ module lcd (
         RW = 0;
         RS = 0;
         data = 0;
-        shown = 0;
     end
 
 
@@ -69,7 +72,9 @@ module lcd (
                     if(counter == MS - 1) begin
                         counter <= 0;
                         state <= WRITE;
-                        if (instructions < 1) instructions <= instructions + 1;
+                        if (instructions <=  1) instructions <= instructions + 1;
+								else instructions <= 0;
+								
 
                     end
                     else counter <= counter + 1;
@@ -77,7 +82,6 @@ module lcd (
                 end
                 default: begin end
             endcase
-
 
         end
 
@@ -99,8 +103,8 @@ module lcd (
                         state <= WRITE;
 
                         //if (opcode != LOAD) begin 
-                        if (instructions < 38) instructions <= instructions + 1;
-
+								if (instructions < 39) instructions <= instructions + 1;
+								else instructions <= 0;
                         //end
                     end
                     else counter <= counter + 1;
@@ -167,7 +171,8 @@ module lcd (
                         else if (opcode == MUL) begin data <= 8'h4D; RS <= 1; end // M
                         else if (opcode == DISPLAY) begin data <= 8'h44; RS <= 1; end // D
                         else if (opcode == CLEAR) begin data <= 8'h43; RS <= 1; end   // C
-                        else if (opcode == LOAD) begin data <= 8'h43; RS <= 1; end   // C
+                        else if (opcode == LOAD) begin data <= 8'h20; RS <= 1; end   //load fica vazio
+						
                     end 
                         
 
@@ -175,7 +180,8 @@ module lcd (
                         if (opcode == ADDI || opcode == ADD) begin data <= 8'h44; RS <= 1; end // D 
                         else if (opcode == SUBI || opcode == SUB || opcode == MUL) begin data <= 8'h55; RS <= 1; end // U 
                         else if (opcode == DISPLAY) begin data <= 8'h50; RS <= 1; end // P
-                        else if (opcode == CLEAR) begin data <= 8'h4C; RS <= 1; end // L          
+                        else if (opcode == CLEAR) begin data <= 8'h4C; RS <= 1; end // L  
+								else if (opcode == LOAD) begin data <= 8'h20; RS <= 1; end   //load fica vazio								
                     end
 
 
@@ -184,18 +190,22 @@ module lcd (
                         else if (opcode == SUB || opcode == SUBI) begin data <= 8'h42; RS <= 1; end // B
                         else if (opcode == MUL || opcode == DISPLAY) begin data <= 8'h4C; RS <= 1; end // L
                         else if (opcode == CLEAR) begin data <= 8'h45; RS <= 1; end // E
+								else if (opcode == LOAD) begin data <= 8'h20; RS <= 1; end   //load fica vazio			
                     end
 
                     9: begin 
-                        if (opcode == ADDI || opcode == SUBI) begin data <= 8'h44; RS <= 1; end   // I
+                        if (opcode == ADDI || opcode == SUBI) begin data <= 8'h49; RS <= 1; end   // I
                         else if (opcode == CLEAR) begin data <= 8'h41; RS <= 1; end // A
+								else if (opcode == LOAD) begin data <= 8'h20; RS <= 1; end   //load fica vazio	
                         else begin data <= 8'h20; RS <= 1; end                                    // espaço para os casos que a operação tem três letras
+										
                     end
         
 
                     // espaços (6 deles)
                     10: begin
-                        if(opcode == CLEAR) begin data <= 8'h52; RS <= 1; end // R             
+                        if(opcode == CLEAR) begin data <= 8'h52; RS <= 1; end // 
+								else if (opcode == LOAD) begin data <= 8'h20; RS <= 1; end   //load fica vazio										
                         else begin data <= 8'h20; RS <= 1; end // espaço
                     end
 
@@ -208,25 +218,25 @@ module lcd (
 
                     // qual registrador print
                     16: begin 
-                        if (opcode == CLEAR) begin data <= 8'h20; RS <= 1; end // espaço
+                        if (opcode == CLEAR || opcode == LOAD) begin data <= 8'h20; RS <= 1; end // espaço
                         else begin data <= 8'h5B; RS <= 1; end // [ 
                     end
 
                     17: begin 
 
                         if (opcode == ADD || opcode == SUB) begin
-                            data <= reg3[0]; RS <= 1;
+                            data <= reg3[3]?8'h31 : 8'h30; RS <= 1;
                         end
 
                         else if (opcode == ADDI || opcode == SUBI || opcode == MUL) begin 
-                            data <= reg2[0]; RS <= 1;
+                            data <= reg2[3]?8'h31 : 8'h30; RS <= 1;
                         end
 
                         else if (opcode == DISPLAY) begin
-                            data <= reg1[0]; RS <= 1;
+                            data <= reg1[3]?8'h31 : 8'h30; RS <= 1;
                         end
 
-                        else if (opcode == CLEAR) begin 
+                        else if (opcode == CLEAR || opcode == LOAD) begin 
                             data <= 8'h20; RS <= 1;     // espaço
                         end 
 
@@ -235,18 +245,18 @@ module lcd (
                     18: begin
 
                         if (opcode == ADD || opcode == SUB) begin
-                            data <= reg3[1]; RS <= 1;
+                            data <= reg3[2]?8'h31 : 8'h30; RS <= 1;
                         end
 
                         else if (opcode == ADDI || opcode == SUBI || opcode == MUL) begin 
-                            data <= reg2[1]; RS <= 1;
+                            data <= reg2[2]?8'h31 : 8'h30; RS <= 1;
                         end
 
                         else if (opcode == DISPLAY) begin
-                            data <= reg1[1]; RS <= 1;
+                            data <= reg1[2]?8'h31 : 8'h30; RS <= 1;
                         end
 
-                        else if (opcode == CLEAR) begin 
+                        else if (opcode == CLEAR || opcode == LOAD) begin 
                             data <= 8'h20; RS <= 1;     // espaço
                         end 
 
@@ -254,18 +264,18 @@ module lcd (
 
                     19: begin 
                         if (opcode == ADD || opcode == SUB) begin
-                            data <= reg3[2]; RS <= 1;
+                            data <= reg3[1]?8'h31 : 8'h30; RS <= 1;
                         end
 
                         else if (opcode == ADDI || opcode == SUBI || opcode == MUL) begin 
-                            data <= reg2[2]; RS <= 1;
+                            data <= reg2[1]?8'h31 : 8'h30; RS <= 1;
                         end
 
                         else if (opcode == DISPLAY) begin
-                            data <= reg1[2]; RS <= 1;
+                            data <= reg1[1]?8'h31 : 8'h30; RS <= 1;
                         end
 
-                        else if (opcode == CLEAR) begin 
+                        else if (opcode == CLEAR || opcode == LOAD) begin 
                             data <= 8'h20; RS <= 1;     // espaço
                         end 
                     end
@@ -273,24 +283,24 @@ module lcd (
                     20: begin 
 
                         if (opcode == ADD || opcode == SUB) begin
-                            data <= reg3[3]; RS <= 1;
+                            data <= reg3[0]?8'h31 : 8'h30; RS <= 1;
                         end
 
                         else if (opcode == ADDI || opcode == SUBI || opcode == MUL) begin 
-                            data <= reg2[3]; RS <= 1;
+                            data <= reg2[0]?8'h31 : 8'h30; RS <= 1;
                         end
 
                         else if (opcode == DISPLAY) begin
-                            data <= reg1[3]; RS <= 1;
+                            data <= reg1[0]?8'h31 : 8'h30; RS <= 1;
                         end
 
-                        else if (opcode == CLEAR) begin 
+                        else if (opcode == CLEAR || opcode == LOAD) begin 
                             data <= 8'h20; RS <= 1;     // espaço
                         end 
                     end
 
                     21: begin 
-                        if (opcode == CLEAR) begin data <= 8'h20; RS <= 1; end // espaço
+                        if (opcode == CLEAR || opcode == LOAD) begin data <= 8'h20; RS <= 1; end // espaço
                         else begin data <= 8'h5D; RS <= 1; end // ]
                     end
 
@@ -316,7 +326,7 @@ module lcd (
                     // sinal do resultado
                     33: begin 
 
-                        if (opcode == CLEAR) begin data <= 8'h20; RS <= 1; end // espaço
+                        if (opcode == CLEAR || opcode == LOAD) begin data <= 8'h20; RS <= 1; end // espaço
                         else begin
                             if (sinal == 0) begin  data <= 8'h2B; RS <= 1; end       // +
                             else begin data <= 8'h2D; RS <= 1; end                   // -
@@ -325,27 +335,27 @@ module lcd (
 
                     // módulo do resultado
                     34: begin 
-                        if (opcode == CLEAR) begin data <= 8'h20; RS <= 1; end // espaço
+                        if (opcode == CLEAR || opcode == LOAD) begin data <= 8'h20; RS <= 1; end // espaço
                         else begin data <= 8'h30 + d_milhar; RS <= 1; end
                     end
                     35: begin 
-                        if (opcode == CLEAR) begin data <= 8'h20; RS <= 1; end // espaço
+                        if (opcode == CLEAR || opcode == LOAD) begin data <= 8'h20; RS <= 1; end // espaço
                         else begin data <= 8'h30 + milhar; RS <= 1; end
                     end
                     36: begin 
-                        if (opcode == CLEAR) begin data <= 8'h20; RS <= 1; end // espaço
+                        if (opcode == CLEAR || opcode == LOAD) begin data <= 8'h20; RS <= 1; end // espaço
                         else begin data <= 8'h30 + centena; RS <= 1; end
                     end
                     37: begin 
-                        if (opcode == CLEAR) begin data <= 8'h20; RS <= 1; end // espaço
+                        if (opcode == CLEAR || opcode == LOAD) begin data <= 8'h20; RS <= 1; end // espaço
                         else begin data <= 8'h30 + dezena; RS <= 1; end
                     end
                     38: begin 
-                        if (opcode == CLEAR) begin data <= 8'h20; RS <= 1; end // espaço
+                        if (opcode == CLEAR || opcode == LOAD) begin data <= 8'h20; RS <= 1; end // espaço
                         else begin data <= 8'h30 + unidade; RS <= 1; end
                     end
 
-                    default: begin data <= 8'h02; RS <= 0; end // volta para home
+                    //default: begin data <= 8'h02; RS <= 0; end // volta para home
                 
                 endcase                
             //end
