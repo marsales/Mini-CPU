@@ -11,13 +11,18 @@ module memory (
     //////////////////////////////
 
     // OUTPUTS ///////////////////
-    output reg [15:0] v1RAM, v2RAM,
-    output stored, read
+    output [15:0] v1RAM, 
+	 output [15:0] v2RAM,
+    output stored, read, cleared
     //////////////////////////////
 );
 
+	 reg [15:0] v1RAMReg;
+	 reg [15:0] v2RAMReg;
+
 	 reg storedReg;
 	 reg readReg;
+	 reg clearedReg;
 	 
     // ESTADOS DA CPU //////////
     parameter OFF = 3'b000,
@@ -45,10 +50,12 @@ module memory (
     reg [15:0] ram [15:0]; // Variável da RAM
 
     integer i;
+	 integer j;
 	 
 	 initial begin
 		storedReg <= 1'b0;
 		readReg <= 1'b0;
+		clearedReg <= 1'b0;
 	 end
 
 
@@ -59,17 +66,17 @@ module memory (
 
             case(opcode)
                 ADD: begin
-                    v1RAM <= ram[addr1];
-                    v2RAM <= ram[addr2];
+                    v1RAMReg <= ram[addr1];
+                    v2RAMReg <= ram[addr2];
                 end
-                ADDI: v1RAM <= ram[addr1];
+                ADDI: v1RAMReg <= ram[addr1];
                 SUB: begin
-                    v1RAM <= ram[addr1];
-                    v2RAM <= ram[addr2];
+                    v1RAMReg <= ram[addr1];
+                    v2RAMReg <= ram[addr2];
                 end
-                SUBI: v1RAM <= ram[addr1];
-                MUL: v1RAM <= ram[addr1];
-                DISPLAY: v1RAM <= ram[addr1];
+                SUBI: v1RAMReg <= ram[addr1];
+                MUL: v1RAMReg <= ram[addr1];
+                DISPLAY: v1RAMReg <= ram[addr1];
 
                 default: begin end // Para quando for LOAD ou CLEAR (não ler nada)
      
@@ -110,18 +117,40 @@ module memory (
 				
 				storedReg <= 1'b1;
         end
-
-        /* Quando a CPU mudar de estado de STORE para FETCH,
+		  
+		  
+		  else if (stateCPU == OFF && ~clearedReg) begin
+		  
+			 for (j = 0; j < 16; j = j + 1) ram[j] <= 16'b0000000000000000;
+		  
+		  end
+		  
+		 
+		  
+		  /* Quando a CPU mudar de estado de STORE para SHOW,
         o stored vai resetar para 0 novamente, e só voltará
         a ser 1 quando uma nova operação for realizada
         */
 		  
-		  else if (stateCPU == FETCH) storedReg <= 1'b0;
+		  else if (stateCPU == FETCH) begin
+				storedReg <= 1'b0;
+				clearedReg <= 1'b0;
+				
+		  end
+		  
+		  
+		  
     end
+	 
 	 
 	 
 	 assign stored = storedReg;
 	 assign read = readReg;
+	 assign cleared = clearedReg;
+	 
+	 assign v2RAM = v2RAMReg;
+	 assign v1RAM = v1RAMReg;
+	
 
 
 endmodule
